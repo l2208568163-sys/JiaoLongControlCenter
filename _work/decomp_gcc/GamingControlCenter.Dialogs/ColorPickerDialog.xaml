@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="GamingControlCenter.Dialogs.ColorPickerDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:GamingControlCenter.Dialogs" xmlns:input="clr-namespace:System.Windows.Input;assembly=PresentationCore" Title="ColorPickerDialog" WindowStyle="None" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" AllowsTransparency="True" Height="200" Width="400" Background="#00FFFFFF" Loaded="Window_Loaded">
+  <Grid Background="#333333">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="4*" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <Grid Column="0" Row="0">
+      <Image Name="ColorPicker" Source="/Assets/ColorWheelPicker.png" MouseDown="ColorPicker_OnMouseDown" />
+    </Grid>
+    <Grid Column="1" Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="0.6*" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="0.1*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <Grid Name="SettingColor" Row="1" Background="#FFA000" />
+      <Grid Row="2">
+        <TextBlock Text="R   " HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Foreground="#A7A8AA" />
+        <TextBox Name="ColorR" Tag="R" BorderBrush="#A7A8AA" BorderThickness="1" Width="50" TextAlignment="Center" Background="#00FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Foreground="#A7A8AA" input:InputMethod.IsInputMethodEnabled="False" Cursor="Arrow" TextChanged="Color_TextChanged" PreviewTextInput="PreviewTextInput1" />
+      </Grid>
+      <Grid Row="3">
+        <TextBlock Text="G   " HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Foreground="#A7A8AA" />
+        <TextBox Name="ColorG" Tag="G" Width="50" HorizontalAlignment="Right" TextAlignment="Center" VerticalAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Background="#00FFFFFF" BorderBrush="#A7A8AA" BorderThickness="1" Foreground="#A7A8AA" input:InputMethod.IsInputMethodEnabled="False" TextChanged="Color_TextChanged" PreviewTextInput="PreviewTextInput1" />
+      </Grid>
+      <Grid Row="4">
+        <TextBlock Text="B   " HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Foreground="#A7A8AA" />
+        <TextBox Name="ColorB" Tag="B" Width="50" HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Center" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Background="#00FFFFFF" BorderBrush="#A7A8AA" BorderThickness="1" Foreground="#A7A8AA" input:InputMethod.IsInputMethodEnabled="False" Cursor="Arrow" TextChanged="Color_TextChanged" PreviewTextInput="PreviewTextInput1" />
+      </Grid>
+      <Grid Row="1" Column="1">
+        <TextBlock Text=" 预设色彩" VerticalAlignment="Bottom" FontSize="12" FontFamily="/Fonts/#方正仿宋简体" Foreground="#A7A8AA" />
+      </Grid>
+      <Grid Row="2" Column="1">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Button Name="DefaultRed" Grid.Column="0" Background="#FFFF0000" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultRed_Click" />
+        <Button Name="DefaultGreen" Grid.Column="1" Background="#FF008000" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultGreen_Click" />
+        <Button Name="DefaultBlue" Grid.Column="2" Background="#FF0000FF" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultBlue_Click" />
+        <Button Name="DefaultYellow" Grid.Column="3" Background="#FFFFFF00" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultYellow_Click" />
+        <Button Name="DefaultPurple" Grid.Column="4" Background="#FF800080" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultPurple_Click" />
+        <Button Name="DefaultIndigo" Grid.Column="5" Background="#FF00FFFF" Height="17" Width="17" BorderBrush="#A7A8AA" BorderThickness="1" VerticalAlignment="Top" Margin="0,4" Click="DefaultIndigo_Click" />
+      </Grid>
+    </Grid>
+    <Grid Row="1" Column="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="3*" />
+      </Grid.ColumnDefinitions>
+      <Button Grid.Column="1" Content="应用" BorderBrush="#A7A8AA" FontSize="15" FontFamily="/Fonts/#方正仿宋简体" Background="#3F3F3F" Margin="10,0" Foreground="#A7A8AA" Cursor="Hand" Click="SureButton_OnClick" />
+    </Grid>
+    <Grid Row="1" Column="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="3*" />
+        <ColumnDefinition Width="1*" />
+      </Grid.ColumnDefinitions>
+      <Button Grid.Column="0" Content="取消" BorderBrush="#A7A8AA" FontSize="15" FontFamily="/Fonts/#方正仿宋简体" Background="#3F3F3F" Margin="10,0" Foreground="#A7A8AA" Click="CancelButton_OnClick" />
+    </Grid>
+  </Grid>
+</Window>

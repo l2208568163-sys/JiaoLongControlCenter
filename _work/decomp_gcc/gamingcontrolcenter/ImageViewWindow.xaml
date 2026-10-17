@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="GamingControlCenter.ImageViewWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:gamingcontrolcenter="clr-namespace:GamingControlCenter;assembly=第三方蛟龙游戏控制中心" Title="奖励自己" Height="300" Width="800">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Image Name="ImageDisplay" Grid.Column="0" Stretch="Uniform" />
+    <Image Name="ImageDisplay2" Grid.Column="1" Stretch="Uniform" />
+  </Grid>
+</Window>

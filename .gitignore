@@ -1,0 +1,74 @@
+# ========== 构建产物 / 依赖 ==========
+bin/
+obj/
+dist/
+publish/
+.vs/
+node_modules/
+*.user
+*.suo
+*.cache
+
+# ========== 二进制与资源（不入库）==========
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.msix
+*.msixbundle
+*.appx
+*.msixupload
+*.zip
+*.7z
+*.rar
+*.cab
+*.cat
+*.pri
+*.winmd
+*.lib
+*.res
+*.log
+*.etl
+*.dmp
+*.nupkg
+
+# 图片 / 设计稿
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.icns
+*.psd
+*.webp
+*.otf
+*.ttf
+*.woff
+*.woff2
+
+# ========== 厂商原始包与解包产物（版权内容，不入库）==========
+ControlCenterX_5.56.60.34/
+JiaoLong7.3/
+_work/unpacked/
+_work/innoextract/
+_work/msix/
+_work/msix_patch/
+_work/bridge_publish/
+_work/publish_bridge/
+_work/deploy/
+_work/_pkg/
+
+# 官方二进制反编译产物（可用 ilspycmd 重新生成，见 README）
+_work/decomp_ui/
+_work/decomp_svc/
+_work/decomp_old/
+_work/decomp_bridge/
+
+# ========== 运行时/杂项 ==========
+.workbuddy/
+Thumbs.db
+desktop.ini
+*.orig
+*.bak

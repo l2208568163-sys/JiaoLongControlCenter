@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JiaoLongCCUBridge/JiaoLongCCUBridge.csproj" />
+    <Project Path="src/TestClient/TestClient.csproj" />
+  </Folder>
+</Solution>

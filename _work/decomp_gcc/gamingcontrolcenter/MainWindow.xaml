@@ -1,0 +1,1158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="GamingControlCenter.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:GamingControlCenter" xmlns:tb="http://www.hardcodet.net/taskbar" xmlns:wpf="clr-namespace:MaterialDesignThemes.Wpf;assembly=MaterialDesignThemes.Wpf" Title="Gaming Control Center" Width="1200" Height="853" AllowsTransparency="True" Background="#00FFFFFF" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="None" Loaded="Window_Loaded">
+  <Grid>
+    <tb:TaskbarIcon Name="NotifyIcon" IconSource="Assets/gcc.ico" TrayMouseDoubleClick="NotifyIco_MouseDoubleClick">
+      <FrameworkElement.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="显示" Click="Show_Click" />
+          <MenuItem Header="退出" Click="ShutdownButton_Click" />
+        </ContextMenu>
+      </FrameworkElement.ContextMenu>
+    </tb:TaskbarIcon>
+    <Grid Name="GridOfWindow" MouseLeftButtonDown="GridOfWindow_MouseLeftButtonDown">
+      <Border Background="#0CFFFFFF" BorderBrush="#33000000" BorderThickness="1" CornerRadius="8">
+        <Image Source="Assets/background.png" Stretch="UniformToFill" />
+      </Border>
+      <Grid Name="BaseGrid" Margin="8" Background="#00FFFFFF">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Name="SideMenuColumn" Width="0.22*" MaxWidth="240" />
+          <ColumnDefinition Name="col2" Width="1*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Name="row1" Height="*" MinHeight="60" MaxHeight="68" />
+          <RowDefinition Name="row2" Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Column="0" ColumnSpan="2">
+          <Button Name="ShutdownButton" Style="{StaticResource CloseAppStyle}" Click="ShutdownButton_Click" />
+          <Image Width="40" Height="40" Margin="0,16,70,0" HorizontalAlignment="Right" VerticalAlignment="Top" Source="/GamingControlCenter/Assets/menu_60x64.png" />
+          <ComboBox Name="MenuComBox" Width="40" Height="40" Margin="0,16,60,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#00FFFFFF" Foreground="#00FFFFFF" Style="{StaticResource MenuComboBox}" SelectionChanged="MenuComBox_SelectChange">
+            <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12">检查更新</ComboBoxItem>
+          </ComboBox>
+          <Button Name="Minimize" Margin="0,16,125,0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource MinimizeAppStyle}" Click="MinimizeButton_Click" />
+        </Grid>
+        <Grid VerticalAlignment="Stretch" Column="0" ColumnSpan="2" Row="1" ScrollViewer.CanContentScroll="False">
+          <ScrollViewer Focusable="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Grid Name="Card_Grid" Height="769" Margin="10,0,10,0" Background="#00FFFFFF">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Name="c0" Width="0.6*" />
+                <ColumnDefinition Name="c1" Width="0.6*" />
+                <ColumnDefinition Name="c2" Width="0.6*" />
+                <ColumnDefinition Name="c3" Width="0.9*" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Name="CG_R1" Height="0.40*" />
+                <RowDefinition Name="CG_R2" Height="0.4*" />
+                <RowDefinition Name="CG_R3" Height="0.80*" />
+                <RowDefinition Name="CG_R4" Height="0.70*" />
+              </Grid.RowDefinitions>
+              <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="3" Width="750" Height="250" Margin="10,10,10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*" />
+                    <ColumnDefinition Width="0.3*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+                    <Border Width="900" Height="300" Margin="-60,-20,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="0.5*" />
+                          <ColumnDefinition Width="0.5*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="0.3*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="0.2*" />
+                        </Grid.RowDefinitions>
+                        <Grid Column="1" Row="1">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.7*" />
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="1.5*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="0*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                            <RowDefinition Height="1.3*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="温度 " />
+                          </StackPanel>
+                          <TextBlock Name="CPUThermometer" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Text="39" />
+                          <TextBlock Grid.Row="1" Grid.Column="2" Margin="15,0,0,4" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#思源黑体 CN Medium" FontSize="15" Foreground="#FFFFFF" Text="℃ " />
+                          <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="频率 " />
+                          </StackPanel>
+                          <TextBlock Name="CPUFrequence" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Text="3.50" />
+                          <TextBlock Grid.Row="2" Grid.Column="2" Margin="15,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="Ghz" />
+                          <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="温度墙调节" />
+                            <TextBlock Grid.Row="6" Grid.Column="0" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="°" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.ToolTip="温度墙调节,间接降低CPU频率,切换性能模式失效" FrameworkElement.VerticalAlignment="Center" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="限制核心数" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2">
+                              <FrameworkElement.ToolTip>
+                                <ToolTip>
+                                  <TextBlock Width="300" Text="日常办公,配合频率调节,达到省电的目的,注意处理复杂任务（如大型游戏、视频渲染、科学计算等）还是会调用多核 这个技术的原理是在低负载时停用部分核心，让剩下的核心跑高频一点。这个技术并不会直接关闭核心，而是转移负载，让没负载的核心进入功耗极低的睡眠状态。" TextWrapping="Wrap" />
+                                </ToolTip>
+                              </FrameworkElement.ToolTip>
+                            </wpf:PackIcon>
+                          </StackPanel>
+                          <Border Name="colorborderCore" Grid.Row="7" Grid.Column="2" Grid.ColumnSpan="2" Width="55" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#FF444B53" CornerRadius="5,5,5,5" MouseEnter="Button_MouseEnter2" MouseLeave="Button_MouseLeave2">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#FFFFFF" Text="选择" TextAlignment="Center" />
+                          </Border>
+                          <ComboBox Name="KeyBoardColorComBox2" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" Width="100" Height="25" Margin="27,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#00FFFFFF" Focusable="False" MouseEnter="Button_MouseEnter2" MouseLeave="Button_MouseLeave2" SelectionChanged="KeyBoardColorComBox_SelectChange2" />
+                          <StackPanel Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="电源管理" TextAlignment="Center" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="注意以上选择只在平衡模式生效,该选择会切换Win11电源管理.最佳能效会最大化能源的使用效率，以达到延长电池使用时间或降低电池消耗,CPU温度" />
+                          </StackPanel>
+                          <TextBlock Name="LimitCore" Grid.Row="7" Grid.Column="1" Margin="0,0,5,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Text="未知" />
+                          <TextBlock Name="PowerMode" Grid.Row="8" Grid.Column="1" Margin="0,0,5,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Text="未知模式" />
+                          <Border Name="colorborderPowerManagement" Grid.Row="8" Grid.Column="2" Grid.ColumnSpan="2" Width="55" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#FF444B53" CornerRadius="5,5,5,5" MouseEnter="Button_MouseEnter3" MouseLeave="Button_MouseLeave3">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#FFFFFF" Text="选择" TextAlignment="Center" />
+                          </Border>
+                          <ComboBox Name="KeyBoardColorComBox3" Grid.Row="8" Grid.ColumnSpan="3" Width="100" Height="25" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#00FFFFFF" Focusable="False" MouseEnter="Button_MouseEnter3" MouseLeave="Button_MouseLeave3" SelectionChanged="KeyBoardColorComBox_SelectChange3">
+                            <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">最佳效能</ComboBoxItem>
+                            <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">平衡</ComboBoxItem>
+                            <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">最佳性能</ComboBoxItem>
+                          </ComboBox>
+                          <TextBox Name="TemperatureWall" Grid.Row="6" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="100" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <StackPanel Grid.Row="6" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="TempWall" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="Temperature_Wall_ToggleButton_Checked" Unchecked="Temperature_Wall_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="限制频率" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,0,0,0" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="8" Foreground="#FFFFFF" Text="Mhz" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="开启本设置会自动切换到平衡模式,关闭游戏模式,关闭则会还原.高频率对于处理复杂任务（如大型游戏、视频渲染、科学计算等）尤为有利,减少延迟,但会增加功耗和发热 低频率的场景用于日常办公,打小游戏降低功耗和发热 " />
+                          </StackPanel>
+                          <TextBox Name="CPUFrequency" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="0" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <StackPanel Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="CPUFrequencyRegulation" Grid.Row="3" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="CPU_ToggleButton_Checked" Unchecked="CPU_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="3" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFFFF" Text="核心数 " />
+                          </StackPanel>
+                          <TextBlock Name="CPUCorecount" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" />
+                          <StackPanel Grid.Row="5" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="关闭睿频" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="关闭睿频,会导致操作卡顿.建议优先使用频率调节,限制核心数,电源管理等" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="5" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="DisableTurboBoost" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="Turo_ToggleButton_Checked" Unchecked="Turo_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <TextBlock Grid.Row="3" Grid.Column="2" Margin="15,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="核" />
+                          <StackPanel Grid.Row="9" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="电压调节" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="电压参数和UXTU一致,重启和关闭按钮还原,电压调节,为确保安全只支持调节负压,重启电脑后失效,有蓝屏风险.如果降压的话,-5,-10这样调节,然后测试稳定性.一般体质CPU范围区间-20左右." />
+                          </StackPanel>
+                          <StackPanel Grid.Row="9" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock Margin="0,0,5,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Text="-" />
+                            <TextBox Name="CPUVoltage" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="0" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="9" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="VoltageStatus" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="CPUVoltage_ToggleButton_Checked" Unchecked="CPUVoltage_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="10" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="长时功耗" />
+                            <TextBlock FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#FFFFFF" Text="w" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="重启和关闭按钮还原 最低25w,最高105w ,切换性能模式失效" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="11" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="短时功耗" />
+                            <TextBlock FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#FFFFFF" Text="w" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="重启和关闭按钮还原 最低20w,最高120w ,切换性能模式失效" />
+                          </StackPanel>
+                          <TextBox Name="CPU_Power_Consumption" Grid.Row="10" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="35" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <TextBox Name="PLNum" Grid.Row="11" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="35" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <StackPanel Grid.Row="10" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="PLLStatus" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="CPU_Power_Consumption_Checked" Unchecked="CPU_Power_Consumption_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="11" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="SLLStatus" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="CPU_Power_PL_Consumption_Checked" Unchecked="CPU_Power_PL_Consumption_UnChecked" />
+                          </StackPanel>
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,110,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+                    <Border Width="646" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="1*" />
+                          <ColumnDefinition Width="0.5*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                          <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="CPU信息" TextWrapping="Wrap" />
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1">
+                          <TextBlock Name="CPUName" MaxWidth="400" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="16" Foreground="#FFFFFF" Text="AMD Ryzen9 7945HX" />
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right">
+                          <TextBlock Name="UA" MaxWidth="400" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" RenderTransformOrigin="-1.411,-0.455" Text="UP主 哦啵啵啵oo" />
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="3" VerticalAlignment="Center">
+                          <Button Name="Appreciate" Width="70" Height="20" Margin="0,0,0,0" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="赏杯咖啡" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="Money_Click" />
+                        </Border>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1" HorizontalAlignment="Left">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="1" HorizontalAlignment="Right">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="1" Margin="-40,30,0,0" VerticalAlignment="Center">
+                    <Grid Column="0" ColumnSpan="1" Row="1">
+                      <Border Width="144" Height="144">
+                        <Image Source="Assets/ring_144x144.png" />
+                      </Border>
+                      <ProgressBar Width="85" Height="85" Margin="20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AF3E4660" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="100" />
+                      <ProgressBar Name="CPUProgressBar" Width="85" Height="85" Margin="20,10" VerticalAlignment="Center" Foreground="#FF45DBFF" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="5" />
+                      <TextBlock Name="CPUTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="24" Foreground="#FF45DBFF" Text="5%" />
+                    </Grid>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="2" Height="119" Margin="30,96,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <local:UserControl1 x:Name="CPUPOLY" Width="355" Height="107" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="2" Grid.RowSpan="1" Grid.Column="0" Grid.ColumnSpan="3" Width="750" Height="250" Margin="10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*" />
+                    <ColumnDefinition Width="0.3*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+                    <Border Width="750" Height="231" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="0.55*" />
+                          <ColumnDefinition Width="0.65*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="0.2*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="0.2*" />
+                        </Grid.RowDefinitions>
+                        <Grid Column="1" Row="1">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="1.5*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="0.2*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="0.2*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="温度 " />
+                          </StackPanel>
+                          <TextBlock Name="GPUThermometer" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="30" />
+                          <TextBlock Grid.Row="1" Grid.Column="2" Margin="15,0,0,4" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontFamily="Fonts/#思源黑体 CN Medium" FontSize="15" Foreground="#FFFFFF" Text="℃ " />
+                          <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="频率 " />
+                          </StackPanel>
+                          <TextBlock Name="GPUFrequence" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="0.22" />
+                          <TextBlock Grid.Row="2" Grid.Column="2" Margin="15,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="Ghz" />
+                          <StackPanel Grid.Row="3" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="限制频率" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,0,0,0" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="8" Foreground="#FFFFFF" Text="Mhz" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="3" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="GPUFrequencyRegulation" Grid.Row="3" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="GPU_ToggleButton_Checked" Unchecked="GPU_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <TextBox Name="GPUFrequency" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="2300" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <StackPanel Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="显存 " />
+                          </StackPanel>
+                          <TextBlock Name="GPUMemoryTotal" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" />
+                          <TextBlock Grid.Row="4" Grid.Column="2" Margin="15,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" Text="GB" />
+                          <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="显卡超频" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,0,0,0" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="8" Foreground="#FFFFFF" Text="Mhz" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="参数和UXTU一致,重启和关闭按钮还原.准确的说该选项为图形时钟偏移 超频有蓝屏死机风险 对游戏帧数有5-10帧的提升,显存超不超对帧数几乎没有影响. 为了安全起见,GPU频率最高250 显存最高1000 一般体质200" />
+                          </StackPanel>
+                          <TextBox Name="GPUFreqOC" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="0" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          <StackPanel Grid.Row="5" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="GPUOC_Checked" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="GPUFreqOC_ToggleButton_Checked" Unchecked="GPUFreqOC_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="显存超频" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,0,0,0" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="8" Foreground="#FFFFFF" Text="Mhz" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="参数和UXTU一致,重启和关闭按钮还原,显存超频对于性能提升,几乎可以忽略不计" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Visibility="Collapsed">
+                            <TextBlock HorizontalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="游戏插帧" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="2" FrameworkElement.ToolTip="需要游戏界面开启,设置窗口化.固定双倍插帧,不支持自定义参数,请使用Lossless Scaling .亲测打网游low帧提升巨大,兼具跟手性和流畅度." />
+                          </StackPanel>
+                          <StackPanel Grid.Row="6" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBox Name="GPUMemoryOC" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="0" PreviewTextInput="TextBox1_PreviewTextInput" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="6" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Name="GPUMemOC_Checked" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="GPUMemOC_ToggleButton_Checked" Unchecked="GPUMemOC_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="7" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="锁定频率" />
+                            <TextBlock Margin="3,0,0,0" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="8" Foreground="#FFFFFF" Text="Mhz" />
+                            <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.Margin="0" FrameworkElement.ToolTip="锁定频率,保持游戏帧率稳定" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="7" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <ToggleButton Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="GPUFreqLock_ToggleButton_Checked" Unchecked="GPUFreqLock_ToggleButton_UnChecked" />
+                          </StackPanel>
+                          <TextBox Name="GPUFreqLock" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Right" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="20" Foreground="#FFFFFF" InputMethod.IsInputMethodEnabled="False" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="2300" PreviewTextInput="TextBox1_PreviewTextInput" />
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,110,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+                    <Border Width="646" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="3*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                          <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="GPU信息" TextWrapping="Wrap" />
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1">
+                          <TextBlock Name="GPUName" MaxWidth="400" Margin="5,5,50,10" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="16" Foreground="#FFFFFF" Text="NVIDIA RTX 4060" TextWrapping="Wrap" />
+                        </Border>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1" HorizontalAlignment="Left">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="1" HorizontalAlignment="Right">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="2" Height="119" Margin="30,96,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <local:UserControl1 x:Name="GPU1POLY" Width="355" Height="107" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="1" Margin="0,30,0,0" VerticalAlignment="Center">
+                    <Grid VerticalAlignment="Center" Column="0" ColumnSpan="1" Row="1">
+                      <Border Width="144" Height="144">
+                        <Image Source="Assets/ring_144x144.png" />
+                      </Border>
+                      <ProgressBar Width="85" Height="85" Margin="20,10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AF3E4660" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="100" />
+                      <ProgressBar Name="GPU1ProgressBar" Width="85" Height="85" Margin="20,10" Foreground="#FF45DBFF" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" />
+                      <TextBlock Name="GPU1TextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="24" Foreground="#FF45DBFF" Text="0%" />
+                    </Grid>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="3" Grid.RowSpan="1" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource C101Style}" Visibility="Collapsed">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Style="{StaticResource C102Style}">
+                      <TextBlock Name="GPU2Name" Margin="5,5" HorizontalAlignment="Right" FontFamily="Fonts/#方正仿宋简体" Style="{StaticResource C103Style}" Text="Intel(R) Iris(R) Plus Graphics 650" TextWrapping="Wrap" />
+                    </Border>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="15,5" HorizontalAlignment="Left" VerticalAlignment="Bottom" Orientation="Horizontal">
+                      <TextBlock FontFamily="Fonts/#方正仿宋简体" FontSize="12" Foreground="#DCE0E4" Text="频率" />
+                      <TextBlock Name="GPU2Frequence" HorizontalAlignment="Left" VerticalAlignment="Top" FontFamily="Fonts/#方正仿宋简体" FontSize="12" Foreground="#DCE0E4" Text="298 Mhz" />
+                      <TextBlock FontFamily="Fonts/#方正仿宋简体" FontSize="12" Foreground="#DCE0E4" Text=" 温度" />
+                      <TextBlock Name="GPU2Thermometer" HorizontalAlignment="Left" VerticalAlignment="Top" FontFamily="Fonts/#方正仿宋简体" FontSize="12" Foreground="#DCE0E4" Text="38℃" />
+                    </StackPanel>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                    <local:UserControl1 x:Name="GPU2POLY" Width="350" Height="130" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="1" VerticalAlignment="Bottom" Orientation="Horizontal">
+                    <Image Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Width="60" Height="60" Margin="10,10" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                    <Grid Column="0" ColumnSpan="1" Row="1">
+                      <ProgressBar Name="GPU2ProgressBar" Width="50" Height="50" Margin="20,10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFA000" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="35" />
+                      <TextBlock Name="GPU2TextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFA000" Text="35%" />
+                    </Grid>
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="1" VerticalAlignment="Bottom" Orientation="Horizontal">
+                    <Image Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Width="60" Height="60" Margin="10,10" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                    <Grid Column="0" ColumnSpan="1" Row="1">
+                      <ProgressBar Width="50" Height="50" Margin="20,10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFA000" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="35" />
+                    </Grid>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="3" Width="233" Height="200" Margin="10,10,10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="233" Height="181" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="1.2*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Column="0" RowSpan="2">
+                          <Border Width="88" Height="88" Margin="20,15,20,0">
+                            <Image Source="Assets/ring_88x88.png" />
+                          </Border>
+                          <ProgressBar Width="52" Height="52" Margin="20,15,20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AF3E4660" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="100" />
+                          <ProgressBar Name="RAMProgressBar" Width="52" Height="52" Margin="20,15,20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF45DBFF" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="35" />
+                          <TextBlock Name="RAMTextBlock" Margin="0,15,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FF45DBFF" Text="35%" />
+                        </Grid>
+                        <Grid Column="1" RowSpan="2">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="1.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="1">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="系统容量 " />
+                          </StackPanel>
+                          <Grid Row="2">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="1.2*" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Name="RAMName" Grid.Column="0" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="8.3 " />
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="GB " />
+                          </Grid>
+                          <StackPanel Grid.Row="4">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="频率 " />
+                          </StackPanel>
+                          <StackPanel Grid.Row="5">
+                            <TextBlock Name="RAMFrequence" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="298 Mhz" />
+                          </StackPanel>
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,15,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="126" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="内存信息" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="3" Grid.Column="1" Width="233" Height="200" Margin="10,10,10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="233" Height="181" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="1.2*" />
+                          <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Column="0" RowSpan="2">
+                          <Border Width="88" Height="88" Margin="20,15,20,0">
+                            <Image Source="Assets/ring_144x144.png" />
+                          </Border>
+                          <ProgressBar Width="52" Height="52" Margin="20,15,20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AF3E4660" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="100" />
+                          <ProgressBar Name="R0MProgressBar" Width="52" Height="52" Margin="20,15,20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF45DBFF" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="35" />
+                          <TextBlock Name="R0MTextBlock" Margin="0,15,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FF45DBFF" Text="35%" />
+                        </Grid>
+                        <Grid Column="1" RowSpan="2">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="1.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="1">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="可用容量 " />
+                          </StackPanel>
+                          <Grid Row="2">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="1.2*" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Name="R0MCurrentStorage" Grid.Column="0" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="512 " />
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="GB " />
+                          </Grid>
+                          <StackPanel Grid.Row="4">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="总容量 " />
+                          </StackPanel>
+                          <Grid Row="5">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="1.2*" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Name="R0MTotalStorage" Grid.Column="0" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="2048 " />
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="GB " />
+                          </Grid>
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,15,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="126" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="硬盘信息" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="3" Grid.RowSpan="1" Grid.Column="2" Width="233" Height="200" Margin="10,10,10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="233" Height="181" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="1.2*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" />
+                        <Grid Column="0" RowSpan="2">
+                          <Border Width="88" Height="88" Margin="20,15,20,0">
+                            <Image Source="Assets/ring_144x144.png" />
+                          </Border>
+                          <ProgressBar Width="52" Height="52" Margin="20,15,20,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AF3E4660" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="100" />
+                          <ProgressBar Name="FANProgressBar" Width="52" Height="52" Margin="0,15,0,0" HorizontalAlignment="Center" Foreground="#FF45DBFF" IsIndeterminate="False" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="35" />
+                          <TextBlock Name="FANTextBlock" Margin="0,15,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FF45DBFF" Text="35%" />
+                        </Grid>
+                        <Grid Column="1" RowSpan="2">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="1.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="1">
+                            <TextBlock HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="当前转速 " />
+                          </StackPanel>
+                          <StackPanel Grid.Row="2">
+                            <TextBlock Name="FanSpeed" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="98 RPM" />
+                          </StackPanel>
+                          <Grid Name="MaxFanSpeedItem" Row="4" RowSpan="3">
+                            <Grid.RowDefinitions>
+                              <RowDefinition Height="*" />
+                              <RowDefinition Height="*" />
+                              <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0">
+                              <TextBlock Name="FanSpeedText" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="最大转速 " />
+                            </StackPanel>
+                            <Grid Row="1">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.1*" />
+                                <ColumnDefinition Width="0.3*" />
+                                <ColumnDefinition Width="0.25*" />
+                                <ColumnDefinition Width="0.2*" />
+                                <ColumnDefinition Width="0.1*" />
+                              </Grid.ColumnDefinitions>
+                              <Button Name="FanSpeedAdd" Grid.Column="0" Content="一" Cursor="Hand" Style="{StaticResource FanSpeedButtonStyle}" Click="MaxFanSpeedSub_Click" />
+                              <StackPanel Grid.Column="1">
+                                <TextBlock Name="MaxFanSpeed" HorizontalAlignment="Right" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="27" />
+                              </StackPanel>
+                              <StackPanel Grid.Column="2">
+                                <TextBlock Name="FanSpeed00" HorizontalAlignment="Left" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="00" />
+                              </StackPanel>
+                              <Button Name="FanSpeedSub" Grid.Column="3" Panel.ZIndex="0" Content="+" Cursor="Hand" Style="{StaticResource FanSpeedButtonStyle}" Click="MaxFanSpeedAdd_Click" />
+                            </Grid>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                              <Slider Name="MaxFanSpeedSlider" Width="64" Height="20" Margin="13,-5,0,10" Focusable="False" IsEnabled="False" IsMoveToPointEnabled="True" Maximum="100" Minimum="0" Style="{DynamicResource MaxFanSpeedSliderStyle}" Value="22" />
+                            </StackPanel>
+                          </Grid>
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,15,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="126" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="风扇信息" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" ZIndex="-1">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="3" Grid.Column="3" Width="360" Height="200" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Name="PerfsettingPage1" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Hidden">
+                    <Border Width="360" Height="181" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid Margin="30,-10,10,0" Column="1">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="0.32*" />
+                          <ColumnDefinition Width="0.5*" />
+                          <ColumnDefinition Width="0.11*" />
+                          <ColumnDefinition Width="0.12*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="CPU温度墙" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                          <Slider Name="CPUTempWallSlider" Width="135" Height="20" Margin="5,10,0,10" Focusable="False" IsMoveToPointEnabled="True" IsSnapToTickEnabled="True" Maximum="100" Minimum="45" Style="{DynamicResource PerfsettingSliderStyle}" Value="99" Initialized="CPUTempWallSlider_Initialized" MouseLeftButtonUp="CPUTempWallSlider_MouseLeftButtonUp" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="{Binding ElementName=CPUTempWallSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="长时运行功耗墙" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                          <Slider Name="SPLSlider" Width="135" Height="20" Margin="5,10,0,10" Focusable="False" IsMoveToPointEnabled="True" IsSnapToTickEnabled="True" Maximum="105" Minimum="20" Style="{DynamicResource PerfsettingSliderStyle}" Value="101" Initialized="SPLSlider_Initialized" MouseLeftButtonUp="SPLSlider_MouseLeftButtonUp" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="{Binding ElementName=SPLSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="W" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="短时运行功耗墙" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                          <Slider Name="SPPTSlider" Width="135" Height="20" Margin="5,10,0,10" Focusable="False" IsMoveToPointEnabled="True" IsSnapToTickEnabled="True" Maximum="120" Minimum="20" Style="{DynamicResource PerfsettingSliderStyle}" Value="105" Initialized="SPPTSlider_Initialized" MouseLeftButtonUp="SPPTSlider_MouseLeftButtonUp" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="{Binding ElementName=SPPTSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="W" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="0" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="显卡核心时钟" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                          <Slider Name="GPUCoreClockSlider" Width="135" Height="20" Margin="5,10,0,10" Focusable="False" IsMoveToPointEnabled="True" IsSnapToTickEnabled="True" Maximum="200" Minimum="0" Style="{DynamicResource PerfsettingSliderStyle}" Value="100" Initialized="GPUCoreClockSlider_Initialized" MouseLeftButtonUp="GPUCoreClockSlider_MouseLeftButtonUp" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="{Binding ElementName=GPUCoreClockSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="3" Orientation="Horizontal">
+                          <TextBlock VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Text="MHz" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="5" Grid.Column="2" Grid.ColumnSpan="2" Orientation="Horizontal">
+                          <Button Name="ModeReturnButton" Width="50" Height="25" Margin="-5,0,0,5" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="退出" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="ModeReturnButton_Click" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Name="PerfsettingPageHome" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Visible">
+                    <Border Width="360" Height="181" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="1.2*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border Name="BorderWorking" Grid.Column="0" Width="100" Height="100" Margin="10,20,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#19FFFFFF" CornerRadius="16.5">
+                          <FrameworkElement.Style>
+                            <Style>
+                              <Style.Triggers>
+                                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                                  <Setter Property="Border.Background" Value="#FF20B2AA" />
+                                  <Setter Property="UIElement.Opacity" Value="0.6" />
+                                </Trigger>
+                              </Style.Triggers>
+                            </Style>
+                          </FrameworkElement.Style>
+                          <Image Name="ImagePerformanceMode" Source="Assets/Working_194x194.png" />
+                        </Border>
+                        <Grid Column="1">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.1*" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="0.6*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="0.8*" />
+                          </Grid.RowDefinitions>
+                          <StackPanel Grid.Row="5" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="TemperatureCurveMode" Content="温度曲线模式" Cursor="Hand" Style="{StaticResource WorkingModeButtonStyle}" Click="TemperatureCurve_Click" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="CustomMode" Content="自定义模式" Cursor="Hand" Style="{StaticResource WorkingModeButtonStyle}" Click="CustomMode_Click" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="WorkMode" Content="办公模式" Cursor="Hand" Style="{StaticResource WorkingModeButtonStyle}" Click="WorkMode_Click" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="PlayingMode" Content="游戏模式" Cursor="Hand" Style="{StaticResource PlayingModeButtonStyle}" Click="PlayingMode_Click" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="FastestMode" Content="狂飙模式" Cursor="Hand" Style="{StaticResource FastestModeButtonStyle}" Click="FastestMode_Click" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="6" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button Name="QuietPerformanceMode" Content="安静性能模式" Cursor="Hand" Style="{StaticResource FastestModeButtonStyle}" Click="QuietPerformanceMode_Click" />
+                          </StackPanel>
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,75,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Name="TemperatureCurvePage" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Hidden">
+                    <Border Width="250" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="性能设置" TextWrapping="Wrap" />
+                    </Border>
+                    <Border Width="360" Height="135" Background="#33000000" CornerRadius="24">
+                      <Grid Column="1" ShowGridLines="True">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.1*" />
+                          <ColumnDefinition Width="0.05*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="0.1*" />
+                          <RowDefinition Height="1*" />
+                          <RowDefinition Height="1*" />
+                          <RowDefinition Height="1*" />
+                          <RowDefinition Height="1*" />
+                          <RowDefinition Height="1*" />
+                          <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="10,0,0,0" Orientation="Vertical">
+                          <TextBlock Grid.Row="0" Grid.Column="2" Margin="0,0,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="5800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="10,0,0,0" Orientation="Vertical" />
+                        <StackPanel Grid.Row="3" Grid.Column="0" Margin="10,0,0,0" Orientation="Vertical">
+                          <TextBlock Grid.Row="0" Grid.Column="2" Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="3800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="0" Margin="10,0,0,0" Orientation="Vertical" />
+                        <StackPanel Grid.Row="5" Grid.Column="0" Margin="10,0,0,0" Orientation="Vertical">
+                          <TextBlock Margin="0,10,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="1800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="1" Orientation="Horizontal">
+                          <Slider Name="tc50" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="1800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="2" Orientation="Horizontal">
+                          <Slider Name="tc60" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="2800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="3" Orientation="Horizontal">
+                          <Slider Name="tc70" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="3800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="4" Orientation="Horizontal">
+                          <Slider Name="tc80" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="4800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="5" Orientation="Horizontal">
+                          <Slider Name="tc90" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="5000" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.RowSpan="5" Grid.Column="6" Orientation="Horizontal">
+                          <Slider Name="tc100" Margin="13,0,0,0" Foreground="#FFFFFFFF" Maximum="5800" Minimum="1800" Orientation="Vertical" Style="{DynamicResource MaterialDesignSlider}" TickFrequency="100" Value="5800" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="0" Margin="5,0,0,0" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="9" Foreground="#FFFFFF" Text="最大转速" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="1" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="50℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="2" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="60℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="3" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="70℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="4" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="80℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="5" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="90℃" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="6" HorizontalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,5,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="10" Foreground="#FFFFFF" Text="100℃" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                    <Border Width="330" Height="20" Margin="2" Background="#33000000" CornerRadius="24">
+                      <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Button Name="Help" Width="70" Height="20" Margin="10,0,0,0" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="说明" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="Help_Click" />
+                        <Button Name="SaveTemperatureCurve" Width="70" Height="20" Margin="10,0,0,0" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="启动" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="SaveTemperatureCurve_Click" />
+                        <Button Width="70" Height="20" Margin="10,0,0,0" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="返回" Cursor="Hand" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="FanCurveModeReturnButton_Click" />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Name="QuietPerformancePage" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Hidden">
+                    <Border Width="250" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="性能设置" TextWrapping="Wrap" />
+                    </Border>
+                    <Border Width="360" Height="135" Background="#33000000" CornerRadius="24">
+                      <Grid Column="1">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="2*" />
+                          <ColumnDefinition Width="1*" />
+                          <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Vertical">
+                          <TextBlock Margin="0,0,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFE4C4" Text="已解除GPU功耗限制(性能模式专属)" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="0,0,0,0" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="固定转速设置" />
+                          <wpf:PackIcon Kind="Information" Control.Foreground="#FFFFFFFF" FrameworkElement.ToolTip="1600~5800 PRM之间,并且会固定转速(非最大转速)." />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Vertical">
+                          <ToggleButton Name="FanToggleButton" Grid.Row="3" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="PRMSpeed_ToggleButton_Checked" Unchecked="PRMSpeed_ToggleButton_UnChecked" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Vertical">
+                          <TextBox Name="PRMSpeed" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#AF3E4660" FontFamily="Fonts/#庞门正道标题体" FontSize="17" Foreground="#FFFFFF" Style="{StaticResource MaterialDesignComboBoxEditableTextBox}" Text="2500" PreviewTextInput="TextBox1_PreviewTextInput" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                    <Border Width="330" Height="20" Margin="2" Background="#33000000" CornerRadius="24">
+                      <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Button Width="70" Height="20" Margin="10,0,0,0" Padding="2" VerticalAlignment="Top" Background="#00FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" Content="返回" Cursor="Hand" FontFamily="Fonts/#庞门正道标题体" FontSize="14" Foreground="#FFFFFF" Click="QuietModeReturnButton_Click" />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,75,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="250" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="性能设置" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+                    <Border Width="24" Height="181" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="2" Grid.RowSpan="1" Grid.Column="3" Grid.ColumnSpan="1" Width="360" Height="250" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="360" Height="231" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="0.8*" />
+                          <RowDefinition Height="0.8*" />
+                          <RowDefinition Height="1.2*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="0.8*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="0.3*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                          <TextBlock Margin="50,5,5,5" VerticalAlignment="Bottom" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="键盘灯光亮度 " />
+                        </StackPanel>
+                        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                          <Slider Name="KeyboardLightBrightness" Width="270" Margin="48,0,0,0" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#FFD2DAFE" Focusable="False" IsMoveToPointEnabled="True" IsSnapToTickEnabled="True" LargeChange="4" Maximum="3" Minimum="0" Orientation="Horizontal" SmallChange="1" Style="{DynamicResource SliderStyle2}" TickPlacement="Both" Value="1" Initialized="KeyboardLightBrightness_Initialized" MouseLeftButtonUp="KeyboardLightBrightness_MouseLeftButtonUp" />
+                        </StackPanel>
+                        <Grid VerticalAlignment="Center" Column="0" Row="6">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="RGB灯自启" />
+                        </Grid>
+                        <ToggleButton Name="RGB_Status" Grid.Row="6" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="RGB_PowerOn_Checked" Unchecked="RGB_PowerOn_UnChecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="1">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="氛围灯 " />
+                        </Grid>
+                        <ToggleButton Name="PCAmbientlight" Grid.Row="1" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="PCAmbientlight_Checked" Unchecked="PCAmbientlight_Unchecked" />
+                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                          <TextBlock Margin="50,5,5,5" VerticalAlignment="Top" FontFamily="Fonts/#庞门正道标题体" FontSize="18" Foreground="#FFFFFF" Text="键盘背光颜色 " />
+                        </StackPanel>
+                        <Border Name="colorborder" Grid.Row="2" Grid.Column="2" Width="80" Height="25" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FF444B53" CornerRadius="5,5,5,5" MouseEnter="Button_MouseEnter" MouseLeave="Button_MouseLeave">
+                          <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#FFFFFF" Text=" 控制方式" TextAlignment="Center" />
+                        </Border>
+                        <ComboBox Name="KeyBoardColorComBox" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Width="80" Height="25" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#00FFFFFF" Focusable="False" MouseEnter="Button_MouseEnter" MouseLeave="Button_MouseLeave" SelectionChanged="KeyBoardColorComBox_SelectChange">
+                          <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">快捷键控制</ComboBoxItem>
+                          <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">软件控制</ComboBoxItem>
+                          <ComboBoxItem Background="#636363" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4">开关彩虹渐变RGB呼吸灯</ComboBoxItem>
+                        </ComboBox>
+                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                          <Slider Name="KeyboardRGBColor" Width="270" Height="30" Margin="50,0,0,0" Focusable="False" IsMoveToPointEnabled="True" LargeChange="360" Maximum="360" Minimum="0" SmallChange="1" Style="{DynamicResource SliderStyle1}" Initialized="KeyboardRGBColor_Initialized" MouseLeftButtonUp="KeyboardRGBColor_MouseLeftButtonUp" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,75,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="250" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="灯光设置" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Grid.ColumnSpan="1" Width="360" Height="250" Margin="10,10" Background="#00FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="360" Height="231" Margin="0,19,0,0" Background="#33000000" CornerRadius="24">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="0.6*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="*" />
+                          <RowDefinition Height="0.2*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Orientation="Horizontal">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="独显直连 " />
+                        </StackPanel>
+                        <ToggleButton Name="IndependentConnection" Grid.Row="1" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Click="IndependentConnection_Click" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="2">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="数字键锁定 " />
+                        </Grid>
+                        <ToggleButton Name="NumLockToggleButton" Grid.Row="2" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="NumLockToggleButton_Checked" Unchecked="NumLockToggleButton_UnChecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="3">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="大写键锁定 " />
+                        </Grid>
+                        <ToggleButton Name="CapsLockToggleButton" Grid.Row="3" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1945DBFF" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="CapsLockToggleButton_Checked" Unchecked="CapsLockToggleButton_UnChecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="4">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="功能键锁定 " />
+                        </Grid>
+                        <ToggleButton Name="FnLock" Grid.Row="4" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="FnLock_Checked" Unchecked="FnLock_Unchecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="5">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="触摸板锁定 " />
+                        </Grid>
+                        <ToggleButton Name="TPLockButton" Grid.Row="5" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="TPLockButton_Checked" Unchecked="TPLockButton_Unchecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="6">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="关闭OSD显示" />
+                        </Grid>
+                        <Grid VerticalAlignment="Center" Column="0" Row="7">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="开机自启" />
+                        </Grid>
+                        <ToggleButton Name="StartUpButton" Grid.Row="7" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="StartUpButton_ToggleButton_Checked" Unchecked="StartUpButton_ToggleButton_UnChecked" />
+                        <Grid VerticalAlignment="Center" Column="0" Row="8">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="温度曲线自启" />
+                        </Grid>
+                        <Grid VerticalAlignment="Center" Column="0" Row="9">
+                          <TextBlock Margin="50,5,5,5" FontFamily="Fonts/#庞门正道标题体" FontSize="15" Foreground="#FFFFFF" Text="自适应模式" />
+                        </Grid>
+                        <ToggleButton Name="TemperatureCurveAutoStart" Grid.Row="8" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="TempCurve_ToggleButton_Checked" Unchecked="TempCurve_ToggleButton_UnChecked" />
+                        <ToggleButton Name="AutoMode" Grid.Row="9" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="AutoMode_Button_Checked" Unchecked="AutoMode_Button_UnChecked" />
+                        <ToggleButton Name="OSDIconButton" Grid.Row="6" Grid.Column="1" Width="40" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" Focusable="False" Style="{DynamicResource ToggleButtonStyle1}" Checked="OSDIconButton_Checked" Unchecked="OSDIconButton_Unchecked" />
+                        <Grid VerticalAlignment="Center" Column="2" Row="3" Visibility="Collapsed">
+                          <TextBlock Margin="10,10" FontFamily="Fonts/#庞门正道标题体" FontSize="12" Foreground="#DCE0E4" Text="Wi-Fi锁定 " />
+                        </Grid>
+                        <ToggleButton Grid.Row="3" Grid.Column="3" Width="40" Margin="10,10" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FFA000" IsEnabled="False" ToolTipService.ShowOnDisabled="True" Visibility="Collapsed">
+                          <FrameworkElement.ToolTip>
+                            <ToolTip>
+                              <DockPanel Background="#00FFFFFF">
+                                <TextBlock FontFamily="Fonts/#方正仿宋简体" FontSize="12">功能暂不可用，请检查更新</TextBlock>
+                              </DockPanel>
+                            </ToolTip>
+                          </FrameworkElement.ToolTip>
+                        </ToggleButton>
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="1">
+                    <Border Width="38" Height="38" Margin="0,0,75,0" Background="#FF272E39" CornerRadius="19,0,0,19">
+                      <Ellipse Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#FF45DBFF" Stroke="#FF45DBFF" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Border Width="250" Height="38" Margin="46,0,0,0" Background="#FF444B53" CornerRadius="0,19,19,0">
+                      <TextBlock Margin="5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="28" Style="{StaticResource C103Style}" Text="常规设置" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="1,1,0,1" CornerRadius="24,0,0,24" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+                    <Border Width="24" Height="231" Margin="0,19,0,0" Background="#00FFFFFF" BorderBrush="#FFFFFFFF" BorderThickness="0,1,1,1" CornerRadius="0,24,24,0" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </Grid>
+          </ScrollViewer>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

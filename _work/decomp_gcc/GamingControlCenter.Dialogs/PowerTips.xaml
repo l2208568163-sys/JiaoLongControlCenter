@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="GamingControlCenter.Dialogs.PowerTips" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:GamingControlCenter.Dialogs" WindowStyle="None" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" AllowsTransparency="True" Title="PowerTips" Height="100" Width="350" Background="#00FFFFFF">
+  <Grid>
+    <Border Background="#E5282D33" CornerRadius="8,8,8,8" />
+    <Grid Name="BaseGrid" Background="#E5444444" Margin="4">
+      <TextBlock Name="powertipsTextBlock" Foreground="#DCE0E4" FontSize="15" Text="请在AC下打开狂飙模式" FontFamily="/Fonts/#优设标题黑" Margin="10,20" />
+      <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal">
+        <Border CornerRadius="38">
+          <FrameworkElement.Style>
+            <Style>
+              <Style.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True" />
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+          <Button Content="确定" FontSize="15" FontFamily="/Fonts/#优设标题黑" Background="#00FFFFFF" Margin="10,0" Foreground="#FFFFFFFF" Cursor="Hand" Click="SureButton_OnClick" />
+        </Border>
+        <Border CornerRadius="38">
+          <FrameworkElement.Style>
+            <Style>
+              <Style.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True" />
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+          <Button Content="取消" FontSize="15" FontFamily="/Fonts/#优设标题黑" Background="#00FFFFFF" Margin="10,0" Foreground="#FFFFFFFF" Cursor="Hand" Click="CancelButton_OnClick" />
+        </Border>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

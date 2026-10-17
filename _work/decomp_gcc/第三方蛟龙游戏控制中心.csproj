@@ -1,0 +1,130 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>第三方蛟龙游戏控制中心</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>True</UseWPF>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ApplicationConfig Remove="第三方蛟龙游戏控制中心.dll.config" />
+    <ApplicationConfig Include="第三方蛟龙游戏控制中心.dll.config" />
+    <ApplicationDefinition Remove="GamingControlCenter\App.xaml" />
+    <ApplicationDefinition Include="GamingControlCenter\App.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/app.xaml" />
+    <Page Remove="GamingControlCenter.Dialogs\ColorPickerDialog.xaml" />
+    <Page Remove="GamingControlCenter.Dialogs\FastestTipsDialog.xaml" />
+    <Page Remove="GamingControlCenter.Dialogs\GraphicsTipsDialog.xaml" />
+    <Page Remove="GamingControlCenter.Dialogs\PowerTips.xaml" />
+    <Page Remove="GamingControlCenter\DeviceInfoPage.xaml" />
+    <Page Remove="GamingControlCenter\ImageViewWindow.xaml" />
+    <Page Remove="GamingControlCenter\MainWindow.xaml" />
+    <Page Remove="gamingcontrolcenter\styles.xaml" />
+    <Page Remove="GamingControlCenter\UserControl1.xaml" />
+    <Page Include="GamingControlCenter.Dialogs\ColorPickerDialog.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/dialogs/colorpickerdialog.xaml" />
+    <Page Include="GamingControlCenter.Dialogs\FastestTipsDialog.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/dialogs/fastesttipsdialog.xaml" />
+    <Page Include="GamingControlCenter.Dialogs\GraphicsTipsDialog.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/dialogs/graphicstipsdialog.xaml" />
+    <Page Include="GamingControlCenter.Dialogs\PowerTips.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/dialogs/powertips.xaml" />
+    <Page Include="GamingControlCenter\DeviceInfoPage.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/deviceinfopage.xaml" />
+    <Page Include="GamingControlCenter\ImageViewWindow.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/imageviewwindow.xaml" />
+    <Page Include="GamingControlCenter\MainWindow.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/mainwindow.xaml" />
+    <Page Include="gamingcontrolcenter\styles.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/styles.xaml" />
+    <Page Include="GamingControlCenter\UserControl1.xaml" Generator="MSBuild:Compile" SubType="Designer" LogicalName="gamingcontrolcenter/usercontrol1.xaml" />
+    <Resource Remove="gamingcontrolcenter\assets\background.png" />
+    <Resource Remove="gamingcontrolcenter\assets\colorwheelpicker.png" />
+    <Resource Remove="gamingcontrolcenter\assets\fast_194x194.png" />
+    <Resource Remove="gamingcontrolcenter\assets\gcc.ico" />
+    <Resource Remove="gamingcontrolcenter\assets\menu_60x64.png" />
+    <Resource Remove="gamingcontrolcenter\assets\minsize_60x64.png" />
+    <Resource Remove="gamingcontrolcenter\assets\off_60x64.png" />
+    <Resource Remove="gamingcontrolcenter\assets\playing_194x194.png" />
+    <Resource Remove="gamingcontrolcenter\assets\ring_144x144.png" />
+    <Resource Remove="gamingcontrolcenter\assets\ring_88x88.png" />
+    <Resource Remove="gamingcontrolcenter\assets\working_194x194.png" />
+    <Resource Remove="gamingcontrolcenter\assets\wxplay.jpg" />
+    <Resource Remove="gamingcontrolcenter\assets\zfbplay.jpg" />
+    <Resource Remove="gamingcontrolcenter\fonts\fangzheng.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\fangzhengfangsongjianti-1.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\opensans-regular.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\opensans-semibold.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\pangmenzheng.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\pangmenzhengdao_3.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\raleway-medium.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\raleway-semibold.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\roboto-medium.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\roboto-regular.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\saira-regular.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\saira-semibold.ttf" />
+    <Resource Remove="gamingcontrolcenter\fonts\sourcehansanscn-medium.otf" />
+    <Resource Remove="gamingcontrolcenter\fonts\youshebiaotihei.ttf" />
+    <Resource Include="gamingcontrolcenter\assets\background.png" LogicalName="gamingcontrolcenter/assets/background.png" />
+    <Resource Include="gamingcontrolcenter\assets\colorwheelpicker.png" LogicalName="gamingcontrolcenter/assets/colorwheelpicker.png" />
+    <Resource Include="gamingcontrolcenter\assets\fast_194x194.png" LogicalName="gamingcontrolcenter/assets/fast_194x194.png" />
+    <Resource Include="gamingcontrolcenter\assets\gcc.ico" LogicalName="gamingcontrolcenter/assets/gcc.ico" />
+    <Resource Include="gamingcontrolcenter\assets\menu_60x64.png" LogicalName="gamingcontrolcenter/assets/menu_60x64.png" />
+    <Resource Include="gamingcontrolcenter\assets\minsize_60x64.png" LogicalName="gamingcontrolcenter/assets/minsize_60x64.png" />
+    <Resource Include="gamingcontrolcenter\assets\off_60x64.png" LogicalName="gamingcontrolcenter/assets/off_60x64.png" />
+    <Resource Include="gamingcontrolcenter\assets\playing_194x194.png" LogicalName="gamingcontrolcenter/assets/playing_194x194.png" />
+    <Resource Include="gamingcontrolcenter\assets\ring_144x144.png" LogicalName="gamingcontrolcenter/assets/ring_144x144.png" />
+    <Resource Include="gamingcontrolcenter\assets\ring_88x88.png" LogicalName="gamingcontrolcenter/assets/ring_88x88.png" />
+    <Resource Include="gamingcontrolcenter\assets\working_194x194.png" LogicalName="gamingcontrolcenter/assets/working_194x194.png" />
+    <Resource Include="gamingcontrolcenter\assets\wxplay.jpg" LogicalName="gamingcontrolcenter/assets/wxplay.jpg" />
+    <Resource Include="gamingcontrolcenter\assets\zfbplay.jpg" LogicalName="gamingcontrolcenter/assets/zfbplay.jpg" />
+    <Resource Include="gamingcontrolcenter\fonts\fangzheng.ttf" LogicalName="gamingcontrolcenter/fonts/fangzheng.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\fangzhengfangsongjianti-1.ttf" LogicalName="gamingcontrolcenter/fonts/fangzhengfangsongjianti-1.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\opensans-regular.ttf" LogicalName="gamingcontrolcenter/fonts/opensans-regular.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\opensans-semibold.ttf" LogicalName="gamingcontrolcenter/fonts/opensans-semibold.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\pangmenzheng.ttf" LogicalName="gamingcontrolcenter/fonts/pangmenzheng.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\pangmenzhengdao_3.ttf" LogicalName="gamingcontrolcenter/fonts/pangmenzhengdao_3.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\raleway-medium.ttf" LogicalName="gamingcontrolcenter/fonts/raleway-medium.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\raleway-semibold.ttf" LogicalName="gamingcontrolcenter/fonts/raleway-semibold.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\roboto-medium.ttf" LogicalName="gamingcontrolcenter/fonts/roboto-medium.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\roboto-regular.ttf" LogicalName="gamingcontrolcenter/fonts/roboto-regular.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\saira-regular.ttf" LogicalName="gamingcontrolcenter/fonts/saira-regular.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\saira-semibold.ttf" LogicalName="gamingcontrolcenter/fonts/saira-semibold.ttf" />
+    <Resource Include="gamingcontrolcenter\fonts\sourcehansanscn-medium.otf" LogicalName="gamingcontrolcenter/fonts/sourcehansanscn-medium.otf" />
+    <Resource Include="gamingcontrolcenter\fonts\youshebiaotihei.ttf" LogicalName="gamingcontrolcenter/fonts/youshebiaotihei.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Management">
+      <HintPath>..\..\JiaoLong7.3\System.Management.dll</HintPath>
+    </Reference>
+    <Reference Include="NvAPIWrapper">
+      <HintPath>..\..\JiaoLong7.3\NvAPIWrapper.dll</HintPath>
+    </Reference>
+    <Reference Include="Hardcodet.NotifyIcon.Wpf">
+      <HintPath>..\..\JiaoLong7.3\Hardcodet.NotifyIcon.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceProcess.ServiceController">
+      <HintPath>..\..\JiaoLong7.3\System.ServiceProcess.ServiceController.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Win32.TaskScheduler">
+      <HintPath>..\..\JiaoLong7.3\Microsoft.Win32.TaskScheduler.dll</HintPath>
+    </Reference>
+    <Reference Include="LibreHardwareMonitorLib">
+      <HintPath>..\..\JiaoLong7.3\LibreHardwareMonitorLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MaterialDesignThemes.Wpf">
+      <HintPath>..\..\JiaoLong7.3\MaterialDesignThemes.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="MaterialDesignColors">
+      <HintPath>..\..\JiaoLong7.3\MaterialDesignColors.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="M2Mqtt.Net">
+      <HintPath>M2Mqtt.Net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

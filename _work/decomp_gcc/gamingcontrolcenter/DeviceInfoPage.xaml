@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="GamingControlCenter.DeviceInfoPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:local="clr-namespace:GamingControlCenter" Title="DeviceInfoPage">
+  <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Disabled">
+      <Grid Name="Card_Grid" Background="#00FFFFFF" Height="590" VerticalAlignment="Top" Margin="10,0,10,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Name="c0" Width="1*" />
+          <ColumnDefinition Name="c1" Width="1*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Name="CG_R1" Height="1*" />
+          <RowDefinition Name="CG_R2" Height="1*" />
+        </Grid.RowDefinitions>
+        <ContentControl Grid.Row="0" Grid.Column="0" Template="{StaticResource Card_1}" />
+        <ContentControl Grid.Row="0" Grid.Column="1" Template="{StaticResource Card_2}" />
+        <ContentControl Grid.Row="1" Grid.Column="0" Template="{StaticResource Card_3}" />
+        <ContentControl Grid.Row="1" Grid.Column="1" Template="{StaticResource Card_4}" />
+      </Grid>
+    </ScrollViewer>
+  </Grid>
+</Page>

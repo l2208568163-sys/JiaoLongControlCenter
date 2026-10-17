@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>JiaoLongLogoMod</AssemblyName>
+    <RootNamespace>JiaoLongLogoMod</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- 与宿主 CCUWinUI 完全同版本的 WindowsAppSDK，投影程序集版本一致 -->
+    <WindowsSdkPackageVersion>10.0.22621.57</WindowsSdkPackageVersion>
+    <!-- 纯类库：关掉 MSIX/PRI 打包链 -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <EnableDefaultWindowsAppSdkContentItems>false</EnableDefaultWindowsAppSdkContentItems>
+    <EnableDefaultWindowsAppSdkPRIResourceItems>false</EnableDefaultWindowsAppSdkPRIResourceItems>
+    <IncludeCopyLocalFilesOutputGroup>false</IncludeCopyLocalFilesOutputGroup>
+    <IncludeBuiltProjectOutputGroup>false</IncludeBuiltProjectOutputGroup>
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <MsixPackageSupport>false</MsixPackageSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 主页控制项 MQTT 客户端：直接用官方 UI 包内同款 M2Mqtt（该程序集在本进程实证可用） -->
+    <Reference Include="M2Mqtt.Net">
+      <HintPath>refs\M2Mqtt.Net.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
