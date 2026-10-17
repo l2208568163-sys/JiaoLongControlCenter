@@ -1,7 +1,6 @@
 # ========== 构建产物 / 依赖 ==========
 bin/
 obj/
-dist/
 publish/
 .vs/
 node_modules/
@@ -51,6 +50,7 @@ node_modules/
 # ========== 厂商原始包与解包产物（版权内容，不入库）==========
 ControlCenterX_5.56.60.34/
 JiaoLong7.3/
+Port/dist/bridge/
 _work/unpacked/
 _work/innoextract/
 _work/msix/
@@ -72,3 +72,11 @@ Thumbs.db
 desktop.ini
 *.orig
 *.bak
+
+# ========== 例外：随仓库分发的完整安装包 ==========
+# 安装包要开箱可用，因此上面的二进制 / 图片排除规则在这里被覆盖。
+# 注意：仅限 Port/dist/JiaoLongCCU-Port-v1.0/ 这一个目录，其余产出一律不入库。
+!Port/dist/
+!Port/dist/JiaoLongCCU-Port-v1.0/
+!Port/dist/JiaoLongCCU-Port-v1.0/**
+
