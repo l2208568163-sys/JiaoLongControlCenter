@@ -7,7 +7,19 @@ using dnlib.DotNet.Writer;
 //   1) set_IsAppStoreVisible 方法体置空 -> 侧栏不显示"应用商店"
 //   2) helper != none 时，HomePage/HomePageForUMA 构造函数注入 LogoMod.Init(this)
 var dllPath = args[0];
-var helperPath = args[1];
+var helperPath = args.Length > 1 ? args[1] : "none";
+
+// 诊断模式：--dump <dll> <全类型名>  列出该类型的所有构造函数
+if (dllPath == "--dump")
+{
+    using var dm = ModuleDefMD.Load(args[1]);
+    var dt = dm.Find(args[2], false);
+    if (dt is null) { Console.WriteLine("type not found: " + args[2]); return; }
+    Console.WriteLine($"type {dt.FullName} ctors={dt.Methods.Count(m => m.IsConstructor)}");
+    foreach (var m in dt.Methods.Where(m => m.IsConstructor))
+        Console.WriteLine($"  {m.Name} params={m.Parameters.Count} isStatic={m.IsStatic} sig={m.MethodSig} body={(m.Body is null ? "null" : m.Body.Instructions.Count.ToString())}");
+    return;
+}
 
 using var module = ModuleDefMD.Load(dllPath);
 
@@ -100,6 +112,41 @@ if (helperPath != "none")
             body.Instructions.Insert(idx, Instruction.Create(OpCodes.Ldarg_0));
         }
         Console.WriteLine($"patch2: injected {rets.Count} call(s) into {typeName}::.ctor");
+    }
+
+    // ---- 补丁 5: 设置页二维码移除（SettingsMod.Init 注入 SettingsPage 构造函数） ----
+    var settingsRef = new MemberRefUser(module, "Init",
+        new MethodSig(CallingConvention.Default, 0, module.CorLibTypes.Void,
+            new[] { module.CorLibTypes.Object }),
+        new TypeRefUser(module, "JiaoLongLogoMod", "SettingsMod", modAsm));
+
+    {
+        var type = module.Find("WinUIGallery.Pages.SettingsPage", false)
+            ?? throw new Exception("type not found: WinUIGallery.Pages.SettingsPage");
+        // 注意：dnlib 对实例 .ctor 的 Parameters.Count 会把 this 算进去（实测
+        // SettingsPage 无参构造 => Parameters.Count==1），这里直接按方法名匹配。
+        var ctor = type.Methods.FirstOrDefault(m => m.IsConstructor && m.Name == ".ctor")
+            ?? throw new Exception("SettingsPage ctor(.ctor()) not found");
+        var body = ctor.Body;
+        if (body.Instructions.Any(i => i.Operand is IMethod im
+                                       && im.Name == "Init"
+                                       && im.DeclaringType is not null
+                                       && im.DeclaringType.Name == "SettingsMod"))
+        {
+            Console.WriteLine("patch5: already injected: SettingsPage");
+        }
+        else
+        {
+            body.SimplifyBranches();
+            var rets = body.Instructions.Where(i => i.OpCode == OpCodes.Ret).ToList();
+            foreach (var ret in rets)
+            {
+                var idx = body.Instructions.IndexOf(ret);
+                body.Instructions.Insert(idx, Instruction.Create(OpCodes.Call, settingsRef));
+                body.Instructions.Insert(idx, Instruction.Create(OpCodes.Ldarg_0));
+            }
+            Console.WriteLine($"patch5: injected {rets.Count} call(s) into SettingsPage::.ctor");
+        }
     }
 
     // ---- 补丁 3: DecideRedirection 接管（8s 超时自愈，防僵尸单实例卡死） ----

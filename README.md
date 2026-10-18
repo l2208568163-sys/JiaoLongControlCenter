@@ -146,6 +146,7 @@ flowchart LR
 | **③ 第三方应用客户端化** | 旧版 WPF 应用反编译改造，控制通道同样桥接到 ① | [`_work/decomp_gcc`](_work/decomp_gcc) |
 
 > 📘 **完整技术复盘见 [`Port/移植技术报告.md`](Port/移植技术报告.md)** —— 协议还原、逐项根因分析、实测矩阵、事故记录，两万余字。
+> 🧩 **后端源码索引见 [`docs/BACKEND.md`](docs/BACKEND.md)** —— 模块划分、每个源文件职责、MQTT 协议约定、构建与运行方式。
 
 ---
 
@@ -154,8 +155,8 @@ flowchart LR
 ```
 JiaoLongControlCenter/
 ├── Port/
-│   ├── src/JiaoLongCCUBridge/       桥接服务（C# / .NET 10，自包含单文件）
-│   │   ├── Bridge.cs                MQTT 服务端与 topic 路由（核心）
+│   ├── src/JiaoLongCCUBridge/       桥接服务（C# / .NET 10，自包含单文件，17 文件 / 4050 行）
+│   │   ├── Bridge.cs                MQTT 服务端与 topic 路由（核心，1377 行）
 │   │   ├── EcAccess.cs              EC 寄存器读写（WinRing0）
 │   │   ├── Mifs.cs                  MIFS：PL1 / PL2（SPL / SPPT）
 │   │   ├── FanController.cs         风扇曲线与转速
@@ -163,14 +164,23 @@ JiaoLongControlCenter/
 │   │   ├── DisplayController.cs     刷新率与显示切换
 │   │   ├── DeviceToggles.cs         WiFi / 蓝牙 / 摄像头开关
 │   │   ├── KeyboardEffects.cs       软件灯效引擎
-│   │   └── HomeControls.cs          主页卡片控制项
+│   │   ├── HomeControls.cs          主页卡片控制项
+│   │   ├── StateStore.cs            状态持久化
+│   │   ├── WinPower.cs              睿频 / 电源方案 / 电池
+│   │   ├── RegistrySetup.cs         GamingCenter2 注册表能力开关
+│   │   ├── UserSessionRunner.cs     用户会话内操作
+│   │   ├── MqttHost.cs              内嵌 broker（127.0.0.1:13688）
+│   │   └── Program.cs               入口 / 服务宿主 / 命令行开关
 │   ├── src/TestClient/              协议测试客户端（模拟 UI 发包）
 │   ├── dist/JiaoLongCCU-Port-v1.0/  ★ 完整安装包（开箱即用）
 │   └── 移植技术报告.md                ★ 完整技术复盘
 │
+├── docs/
+│   └── BACKEND.md                   ★ 后端源码索引（模块职责 / 协议 / 构建运行）
+│
 ├── _work/
 │   ├── tools/                       重打包管线（解包→打补丁→签名→装机）
-│   ├── logomod/                     HomeMod 主页注入 + LogoMod
+│   ├── logomod/                     HomeMod 主页注入 + LogoMod + SettingsMod
 │   ├── decomp_gcc/                  第三方 WPF 应用改造
 │   ├── ec_test/ · patcher/          EC 探测 / DLL 补丁工具
 │   └── *.ps1 · *.py                 逐项实测脚本

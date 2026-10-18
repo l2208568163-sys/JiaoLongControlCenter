@@ -48,6 +48,16 @@ public sealed class StateStore
     /// <summary>最大转速开关（旧程序 MAX_FAN Switch 通道，固件无效仅状态记忆）。</summary>
     public bool FanMaxSwitch { get; set; }
 
+    // —— 主页可调项启用开关（v9j）：关闭 = 该项恢复默认/不下发，开启 = 下发当前值 ——
+    public bool Pl1Enabled { get; set; } = true;
+    public bool Pl2Enabled { get; set; } = true;
+    public bool UndervoltEnabled { get; set; } = true;
+    public bool GpuCoreOffsetEnabled { get; set; } = true;
+    public bool GpuMemOffsetEnabled { get; set; } = true;
+    public bool GpuLockMhzEnabled { get; set; } = true;
+    public bool FanMaxRpmEnabled { get; set; } = true;
+    public bool TempWallEnabled { get; set; } = true;
+
     // —— 显示 ——
     public bool ColorCalibrationOn { get; set; }
 

@@ -47,6 +47,8 @@ public static class HomeMod
         public int FanMaxRpm;
         public bool FanMaxSwitch;
         public int TempWall = 95;
+        // v9j：每项启用开关（关 = 该项恢复默认/不下发）
+        public bool Pl1En = true, Pl2En = true, UvEn = true, CoreEn = true, MemEn = true, LockEn = true, FanRpmEn = true, TempWallEn = true;
         public string FanCpuRpm = "-", FanGpuRpm = "-", FanCpuDuty = "-", FanGpuDuty = "-";
     }
 
@@ -81,7 +83,7 @@ public static class HomeMod
             _started = true;
             if (pageObj is not Page page) return;
             _page = page;
-            LogoMod.Log("home: init v9i (tap-edit + fan switch/tempwall)");
+            LogoMod.Log("home: init v9k2 (path switch ui)");
 
             var timer = page.DispatcherQueue.CreateTimer();
             timer.Interval = TimeSpan.FromMilliseconds(700);
@@ -276,9 +278,15 @@ public static class HomeMod
             i => Publish("POWER_PLAN", $",\"High\":{(i == 0 ? "true" : "false")}")));
 
         // 功耗墙/降压（步进）
-        rows.Add(StepperRow("长时功耗 PL1", 15, 120, 1, () => State.Spl, v => Publish("SPL", $",\"Watts\":{v}"), "W"));
-        rows.Add(StepperRow("短时功耗 PL2", 15, 130, 1, () => State.Sppt, v => Publish("SPPT", $",\"Watts\":{v}"), "W"));
-        rows.Add(StepperRow("CPU 降压步数", 0, 50, 1, () => State.UndervoltSteps, v => Publish("UNDERVOLT", $",\"Steps\":{v}"), ""));
+        rows.Add(StepperRow("长时功耗 PL1", 15, 120, 1, () => State.Spl,
+            v => Publish("SPL", $",\"Watts\":{v},\"Enabled\":{B(State.Pl1En)}"), "W",
+            () => State.Pl1En, on => { State.Pl1En = on; Publish("SPL", $",\"Watts\":{State.Spl},\"Enabled\":{B(on)}"); }));
+        rows.Add(StepperRow("短时功耗 PL2", 15, 130, 1, () => State.Sppt,
+            v => Publish("SPPT", $",\"Watts\":{v},\"Enabled\":{B(State.Pl2En)}"), "W",
+            () => State.Pl2En, on => { State.Pl2En = on; Publish("SPPT", $",\"Watts\":{State.Sppt},\"Enabled\":{B(on)}"); }));
+        rows.Add(StepperRow("CPU 降压步数", 0, 50, 1, () => State.UndervoltSteps,
+            v => Publish("UNDERVOLT", $",\"Steps\":{v},\"Enabled\":{B(State.UvEn)}"), "",
+            () => State.UvEn, on => { State.UvEn = on; Publish("UNDERVOLT", $",\"Steps\":{State.UndervoltSteps},\"Enabled\":{B(on)}"); }));
 
         // v9g：频率曲线行移除——字号/行距放大后卡片高度不够，曲线会被底边裁掉；
         // 如需恢复：rows.Add(caption) + rows.Add(ChartBox(_cpuChartPath))
@@ -294,10 +302,16 @@ public static class HomeMod
         var rows = new List<FrameworkElement>();
 
         rows.Add(ToggleRow("显卡超频", () => State.GpuOcOn, on => Publish("GPU_OC", $",\"On\":{(on ? "true" : "false")}")));
-        rows.Add(StepperRow("核心偏移", 0, 250, 10, () => State.GpuCoreOffset, v => Publish("GPU_CORE_OFFSET", $",\"Mhz\":{v}"), "MHz"));
-        rows.Add(StepperRow("显存偏移", 0, 1000, 50, () => State.GpuMemOffset, v => Publish("GPU_MEM_OFFSET", $",\"Mhz\":{v}"), "MHz"));
+        rows.Add(StepperRow("核心偏移", 0, 250, 10, () => State.GpuCoreOffset,
+            v => Publish("GPU_CORE_OFFSET", $",\"Mhz\":{v},\"Enabled\":{B(State.CoreEn)}"), "MHz",
+            () => State.CoreEn, on => { State.CoreEn = on; Publish("GPU_CORE_OFFSET", $",\"Mhz\":{State.GpuCoreOffset},\"Enabled\":{B(on)}"); }));
+        rows.Add(StepperRow("显存偏移", 0, 1000, 50, () => State.GpuMemOffset,
+            v => Publish("GPU_MEM_OFFSET", $",\"Mhz\":{v},\"Enabled\":{B(State.MemEn)}"), "MHz",
+            () => State.MemEn, on => { State.MemEn = on; Publish("GPU_MEM_OFFSET", $",\"Mhz\":{State.GpuMemOffset},\"Enabled\":{B(on)}"); }));
         rows.Add(ToggleRow("锁定频率", () => State.GpuLockOn, on => Publish("GPU_LOCK", $",\"On\":{(on ? "true" : "false")}")));
-        rows.Add(StepperRow("锁定频率值", 210, 3105, 15, () => State.GpuLockMhz, v => Publish("GPU_LOCK_MHZ", $",\"Mhz\":{v}"), "MHz"));
+        rows.Add(StepperRow("锁定频率值", 210, 3105, 15, () => State.GpuLockMhz,
+            v => Publish("GPU_LOCK_MHZ", $",\"Mhz\":{v},\"Enabled\":{B(State.LockEn)}"), "MHz",
+            () => State.LockEn, on => { State.LockEn = on; Publish("GPU_LOCK_MHZ", $",\"Mhz\":{State.GpuLockMhz},\"Enabled\":{B(on)}"); }));
 
         // v9g：频率曲线行移除（同 CPU，卡片高度不够）
         _gpuChartPath = null;
@@ -315,7 +329,8 @@ public static class HomeMod
 
         // 自定义风扇转速（0-7000，步进 100；>5800 走风险提示）
         rows.Add(StepperRow("自定义风扇转速", 0, 7000, 100,
-            () => State.FanMaxRpm, v => Publish("MAX_FAN", $",\"Value\":{v}"), "RPM"));
+            () => State.FanMaxRpm, v => Publish("MAX_FAN", $",\"Value\":{v},\"Enabled\":{B(State.FanRpmEn)}"), "RPM",
+            () => State.FanRpmEn, on => { State.FanRpmEn = on; Publish("MAX_FAN", $",\"Value\":{State.FanMaxRpm},\"Enabled\":{B(on)}"); }));
 
         // 超转风险提示（>5800 显示）
         _fanWarnText = new TextBlock
@@ -334,7 +349,8 @@ public static class HomeMod
 
         // 温度墙（温度曲线上限，MIFS fn23 子功能 4）
         rows.Add(StepperRow("温度墙 (温度曲线)", 40, 110, 1,
-            () => State.TempWall, v => Publish("TEMP_WALL", $",\"Value\":{v}"), "°C"));
+            () => State.TempWall, v => Publish("TEMP_WALL", $",\"Value\":{v},\"Enabled\":{B(State.TempWallEn)}"), "°C",
+            () => State.TempWallEn, on => { State.TempWallEn = on; Publish("TEMP_WALL", $",\"Value\":{State.TempWall},\"Enabled\":{B(on)}"); }));
 
         return NewPanel("风扇", rows);
     }
@@ -461,29 +477,181 @@ public static class HomeMod
     /// <summary>步进行：优先 Slider（ValueChanged 防抖提交，本应用无 PointerReleased）；
     /// 缺失则降级为 −/+ 点击 TextBlock。</summary>
     private static FrameworkElement StepperRow(string label, int min, int max, int step,
-        Func<int> get, Action<int> set, string unit)
+        Func<int> get, Action<int> set, string unit, Func<bool>? getEn = null, Action<bool>? setEn = null)
     {
         var row = NewRow();
         row.Children.Add(NewLabel(label));
 
         bool ok = false;
         try { ok = TryAddSlider(row, label, min, max, step, get, set, unit); } catch (Exception ex) { LogoMod.Log("control: Slider JIT 失败 (" + label + "): " + ex.Message); ok = false; }
-        if (ok) return row;
+        if (ok) { AddEnableSwitch(row, getEn, setEn); return row; }
 
         var fallbackVal = NewTapText("");
         TrySetW(fallbackVal, 70);
         var minus = NewTapText("−", 14);
         var plus = NewTapText("+", 14);
         try { minus.Padding = new Thickness(10, 6, 10, 6); plus.Padding = new Thickness(10, 6, 10, 6); } catch { }
-        minus.Tapped += (s, e) => { try { LogoMod.Log("tap minus: " + label); set(Math.Max(min, get() - step)); } catch (Exception ex) { LogoMod.Log("tap minus err: " + ex.Message); } };
-        plus.Tapped += (s, e) => { try { LogoMod.Log("tap plus: " + label); set(Math.Min(max, get() + step)); } catch (Exception ex) { LogoMod.Log("tap plus err: " + ex.Message); } };
-        AttachTapEdit(fallbackVal, get, set, min, max); // v9i：点数值直接编辑
-        Syncs.Add(() => TrySetText(fallbackVal, FormatVal(get(), unit)));
+        minus.Tapped += (s, e) => { try { if (getEn != null && !getEn()) return; LogoMod.Log("tap minus: " + label); set(Math.Max(min, get() - step)); } catch (Exception ex) { LogoMod.Log("tap minus err: " + ex.Message); } };
+        plus.Tapped += (s, e) => { try { if (getEn != null && !getEn()) return; LogoMod.Log("tap plus: " + label); set(Math.Min(max, get() + step)); } catch (Exception ex) { LogoMod.Log("tap plus err: " + ex.Message); } };
+        AttachTapEdit(fallbackVal, get, set, min, max, getEn); // v9i：点数值直接编辑
+        Syncs.Add(() =>
+        {
+            TrySetText(fallbackVal, FormatVal(get(), unit));
+            if (getEn != null) { try { TrySetOpacity(fallbackVal, getEn() ? 1.0 : 0.45); } catch { } }
+        });
         row.Children.Add(minus);
         row.Children.Add(fallbackVal);
         row.Children.Add(plus);
-        LogoMod.Log("control: 降级-步进 (" + label + ")");
+        AddEnableSwitch(row, getEn, setEn);
+        LogoMod.Log("control: 降级-步进 (" + label + (getEn != null ? " +开关" : "") + ")");
         return row;
+    }
+
+    private static string B(bool v) => v ? "true" : "false";
+
+    /// <summary>行尾启用开关（v9k）：完整开关外观 —— 圆角轨道 + 圆形滑块。
+    /// 宿主投影裁掉了 ToggleSwitch，故用 Canvas+Border 自绘；Border 若被裁则降级为 ● 文字点。</summary>
+    private static void AddEnableSwitch(StackPanel row, Func<bool>? getEn, Action<bool>? setEn)
+    {
+        if (getEn == null || setEn == null) return;
+
+        SwitchUi? ui = null;
+        try { ui = BuildSwitchUi(); }
+        catch (Exception ex) { LogoMod.Log("switch: 自绘开关不可用，降级文字点: " + ex.Message); ui = null; }
+
+        if (ui == null)
+        {
+            // 降级：●/○ 文字点
+            var dot = NewTapText("", 14);
+            try { dot.Padding = new Thickness(8, 2, 4, 2); } catch { }
+            dot.Tapped += (s2, e) =>
+            {
+                try { bool on = !getEn(); LogoMod.Log("tap enable -> " + (on ? "on" : "off")); setEn(on); }
+                catch (Exception ex) { LogoMod.Log("tap enable err: " + ex.Message); }
+            };
+            Syncs.Add(() =>
+            {
+                bool on = getEn();
+                TrySetText(dot, on ? "●" : "○");
+                try
+                {
+                    dot.Foreground = on
+                        ? new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x2E, 0xC5, 0xFF))
+                        : new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x88, 0x88, 0x88));
+                }
+                catch { }
+            });
+            row.Children.Add(dot);
+            return;
+        }
+
+        var root = ui.Root;
+        root.Tapped += (s2, e) =>
+        {
+            try
+            {
+                bool on = !getEn();
+                LogoMod.Log("tap enable -> " + (on ? "on" : "off"));
+                ui.Apply(on);      // 立即视觉反馈（不等遥测回传）
+                setEn(on);
+            }
+            catch (Exception ex) { LogoMod.Log("tap enable err: " + ex.Message); }
+        };
+        Syncs.Add(() => ui.Apply(getEn()));
+        ui.Apply(getEn());
+        row.Children.Add(root);
+        LogoMod.Log("control: 开关已挂载（Canvas 自绘）");
+    }
+
+    private sealed class SwitchUi
+    {
+        public FrameworkElement Root = null!;
+        public Action<bool> Apply = _ => { };
+    }
+
+    /// <summary>圆角矩形采样点（每角 seg 段折线拟合，屏幕坐标 y 向下）。</summary>
+    private static List<Point> RoundRectPoints(double x, double y, double w, double h, double r, int seg)
+    {
+        var pts = new List<Point>();
+        double[,] corners =
+        {
+            { x + w - r, y + r, -90 },      // 右上
+            { x + w - r, y + h - r, 0 },    // 右下
+            { x + r, y + h - r, 90 },       // 左下
+            { x + r, y + r, 180 }           // 左上
+        };
+        for (int c = 0; c < 4; c++)
+        {
+            for (int i = 0; i <= seg; i++)
+            {
+                double ang = (corners[c, 2] + 90.0 * i / seg) * Math.PI / 180.0;
+                pts.Add(new Point(corners[c, 0] + r * Math.Cos(ang), corners[c, 1] + r * Math.Sin(ang)));
+            }
+        }
+        return pts;
+    }
+
+    /// <summary>隔离：用 Path+PathGeometry+LineSegment（白名单 API）画圆角胶囊/圆形。</summary>
+    private static Path? TryMakePill(double w, double h, Windows.UI.Color color)
+    {
+        try
+        {
+            var fig = new PathFigure();
+            var pts = RoundRectPoints(0, 0, w, h, Math.Min(h / 2.0, w / 2.0), 6);
+            fig.StartPoint = pts[0];
+            for (int i = 1; i < pts.Count; i++)
+                fig.Segments.Add(new LineSegment { Point = pts[i] });
+            try { fig.IsClosed = true; } catch { }
+            var geo = new PathGeometry();
+            geo.Figures.Add(fig);
+            var path = new Path { Data = geo };
+            TrySetFill(path, color);
+            return path;
+        }
+        catch (Exception ex)
+        {
+            LogoMod.Log("switch: Path 开关不可用: " + ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>隔离：Path.Fill 赋值（Fill setter 若被裁只丢颜色不炸）。</summary>
+    private static void TrySetFill(Path path, Windows.UI.Color color)
+    {
+        try { path.Fill = new SolidColorBrush(color); } catch { }
+    }
+
+    /// <summary>隔离：自绘开关外观。轨道 40x22 胶囊 + 滑块 16 圆点。</summary>
+    private static SwitchUi BuildSwitchUi()
+    {
+        const double W = 44, H = 26;
+        var canvas = new Canvas();
+        TrySetW(canvas, W);
+        try { canvas.Height = H; } catch { }
+
+        var track = TryMakePill(40, 22, Windows.UI.Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+        if (track == null) throw new InvalidOperationException("track null");
+        var knob = TryMakePill(16, 16, Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
+        if (knob == null) throw new InvalidOperationException("knob null");
+
+        try { Canvas.SetLeft(track, 2); Canvas.SetTop(track, 2); } catch { }
+        try { Canvas.SetTop(knob, 5); Canvas.SetLeft(knob, 4); } catch { }
+        canvas.Children.Add(track);
+        canvas.Children.Add(knob);
+
+        var cOn = Windows.UI.Color.FromArgb(0xFF, 0x2E, 0xC5, 0xFF);
+        var cOff = Windows.UI.Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF);
+        var kOn = Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
+        var kOff = Windows.UI.Color.FromArgb(0xFF, 0xBF, 0xBF, 0xBF);
+
+        var ui = new SwitchUi { Root = canvas };
+        ui.Apply = on =>
+        {
+            TrySetFill(track, on ? cOn : cOff);
+            TrySetFill(knob, on ? kOn : kOff);
+            try { Canvas.SetLeft(knob, on ? 24 : 4); } catch { }
+        };
+        return ui;
     }
 
     /// <summary>隔离：只含 Slider 引用。</summary>
@@ -538,11 +706,11 @@ public static class HomeMod
 
     /// <summary>点数值文本：原位换成 TextBox，失焦时解析并提交（Clamp min/max）。
     /// TextBox/FocusState 若被宿主投影裁剪，仅本编辑功能不可用，不影响其它控制。</summary>
-    private static void AttachTapEdit(TextBlock val, Func<int> get, Action<int> set, int min, int max)
+    private static void AttachTapEdit(TextBlock val, Func<int> get, Action<int> set, int min, int max, Func<bool>? getEn = null)
     {
         val.Tapped += (s, e) =>
         {
-            try { ShowInlineEditor(val, get, set, min, max); }
+            try { if (getEn != null && !getEn()) return; ShowInlineEditor(val, get, set, min, max); }
             catch (Exception ex) { LogoMod.Log("edit open err: " + ex.Message); }
         };
     }
@@ -581,12 +749,15 @@ public static class HomeMod
             catch (Exception ex) { LogoMod.Log("edit swapback err: " + ex.Message); }
         };
 
-        // LostFocus += commit（反射建委托）
+        // LostFocus += commit：WinRT 事件是 2 参 TypedEventHandler，
+        // 用静态 (object,object) 处理器 + 路由表转发（Action 直接 CreateDelegate 签名不符）
         try
         {
-            var evt = bt.GetEvent("LostFocus")!;
-            var handler = Delegate.CreateDelegate(evt.EventHandlerType!,
-                commitAction.Target, commitAction.Method);
+            CommitMap[box] = commitAction;
+            var evt = bt.GetEvent("LostFocus");
+            var mi = typeof(HomeMod).GetMethod("EditLostFocusHandler",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var handler = Delegate.CreateDelegate(evt.EventHandlerType, null, mi);
             evt.AddEventHandler(box, handler);
         }
         catch (Exception ex) { LogoMod.Log("edit: LostFocus hook " + ex.Message); }
@@ -671,7 +842,7 @@ public static class HomeMod
             }
             // 必须请求 IActivationFactory：请求 IInspectable 拿到的是 IInspectable 接口指针，
             // 其 vtable 槽 6 不是 ActivateInstance（踩内存返回指针值）
-            var iid = new Guid(0x2C13C84C, 0xB381, 0x4BE7, 0x9B, 0xED, 0x66, 0x3C, 0x62, 0x3B, 0x23, 0x6E);
+            var iid = new Guid(0x00000035, 0x0000, 0x0000, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46); // WinRT.Runtime3 的 IID_IActivationFactory
             try
             {
                 foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -702,6 +873,22 @@ public static class HomeMod
             return hr == 0 ? inst : IntPtr.Zero;
         }
         catch (Exception ex) { LogoMod.Log("edit: RoActivate exc " + ex.Message); return IntPtr.Zero; }
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<object, Action> CommitMap
+        = new System.Collections.Generic.Dictionary<object, Action>();
+
+    private static void EditLostFocusHandler(object sender, object e)
+    {
+        try
+        {
+            if (sender != null && CommitMap.TryGetValue(sender, out var a))
+            {
+                CommitMap.Remove(sender);
+                a();
+            }
+        }
+        catch (Exception ex) { LogoMod.Log("edit: route " + ex.Message); }
     }
 
     private static string ActionOf(string label) => label switch
@@ -868,6 +1055,14 @@ public static class HomeMod
                         State.FanMaxRpm = GetInt(json, "FanMaxRpm", 0);
                         State.FanMaxSwitch = GetBool(json, "FanMaxSwitch");
                         State.TempWall = GetInt(json, "TempWall", 95);
+                        State.Pl1En = GetBool(json, "Pl1Enabled", true);
+                        State.Pl2En = GetBool(json, "Pl2Enabled", true);
+                        State.UvEn = GetBool(json, "UndervoltEnabled", true);
+                        State.CoreEn = GetBool(json, "GpuCoreOffsetEnabled", true);
+                        State.MemEn = GetBool(json, "GpuMemOffsetEnabled", true);
+                        State.LockEn = GetBool(json, "GpuLockMhzEnabled", true);
+                        State.FanRpmEn = GetBool(json, "FanMaxRpmEnabled", true);
+                        State.TempWallEn = GetBool(json, "TempWallEnabled", true);
                         var range = GetArrayRange(json, "GpuLockClocks");
                         if (range.HasValue)
                         {

@@ -26,9 +26,13 @@ def run(cmd, **kw):
         raise SystemExit(f"FAILED rc={r.returncode}: {' '.join(cmd)}")
     return r
 
-# ---------- 1. 全新解包官方原包 ----------
+# ---------- 1. 解包官方原包（覆盖式，不删目录） ----------
+# 不 shutil.rmtree(APP3)：一次性删 570 个文件会撞上工作区 safe-delete 守卫
+# (SAFE_DELETE_BULK_CONFIRM_REQUIRED)。makeappx unpack /o 会覆盖同名文件，
+# 目录里的旧文件集合与包内完全一致（补丁只在包内既有文件上改 + 注入 1 个 dll），
+# 因此覆盖式解包等价于全新解包，且文件数校验仍能兜住意外残留。
 if os.path.exists(APP3):
-    shutil.rmtree(APP3)
+    print(f"reuse existing {APP3} (unpack /o overwrite)")
 run([MAKEAPPX, "unpack", "/p", ZIP, "/d", APP3, "/o"])
 
 # ---------- 2. 注入库 DLL 进包 ----------

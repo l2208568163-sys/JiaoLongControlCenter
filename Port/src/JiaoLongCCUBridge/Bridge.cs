@@ -997,8 +997,8 @@ public sealed partial class ProtocolHandlers : IPublisher
     private void ApplyGpuOverclock()
     {
         if (!KaronOc.Available) return;
-        int core = _state.GpuOverClockingSwitch ? _state.GpuCoreOffset : 0;
-        int mem = _state.GpuOverClockingSwitch ? _state.GpuMemOffset : 0;
+        int core = (_state.GpuOverClockingSwitch && _state.GpuCoreOffsetEnabled) ? _state.GpuCoreOffset : 0;
+        int mem = (_state.GpuOverClockingSwitch && _state.GpuMemOffsetEnabled) ? _state.GpuMemOffset : 0;
         bool ok = KaronOc.Set(core, mem);
         Log.Info($"GPU OC: core={core}MHz mem={mem}MHz -> {(ok ? "OK" : "FAILED")}");
     }

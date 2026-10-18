@@ -80,3 +80,13 @@ desktop.ini
 !Port/dist/JiaoLongCCU-Port-v1.0/
 !Port/dist/JiaoLongCCU-Port-v1.0/**
 
+# ========== 例外：后端编译所需的第三方程序集 ==========
+# M2Mqtt.Net.dll 是 Apache-2.0 开源库（GnatMQ），HomeMod 编译必需，必须入库。
+!_work/logomod/refs/M2Mqtt.Net.dll
+
+# ========== 明确排除：对话/调试输出 ==========
+# _work 根目录下这些 .txt 都是调试与终端回显转储，属于过程记录，不入库
+_work/*.txt
+*.jsonl
+
+

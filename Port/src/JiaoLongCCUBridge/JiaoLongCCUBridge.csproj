@@ -10,6 +10,18 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--
+      原生依赖查找顺序（保证 clone 下来就能编译）：
+        1. 仓库内自带的安装包 payload（Port/dist/JiaoLongCCU-Port-v1.0/payload）
+        2. 本地开发机上的 JiaoLong7.3 目录（第三方控制中心安装目录）
+    -->
+    <_PayloadDir>$(MSBuildThisFileDirectory)..\..\dist\JiaoLongCCU-Port-v1.0\payload</_PayloadDir>
+    <_LocalVendorDir>$(MSBuildThisFileDirectory)..\..\..\JiaoLong7.3</_LocalVendorDir>
+    <NativeBinDir Condition="Exists('$(_PayloadDir)\KaronOC.dll')">$(_PayloadDir)</NativeBinDir>
+    <NativeBinDir Condition="'$(NativeBinDir)' == '' And Exists('$(_LocalVendorDir)\KaronOC.dll')">$(_LocalVendorDir)</NativeBinDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.12" />
     <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
@@ -17,11 +29,16 @@
     <PackageReference Include="System.Management" Version="10.0.12" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- 原生依赖：来自第三方蛟龙控制中心，已在本机验证 -->
-    <None Include="..\..\..\JiaoLong7.3\KaronOC.dll" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\..\JiaoLong7.3\WinRing0x64.dll" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\..\JiaoLong7.3\WinRing0x64.sys" CopyToOutputDirectory="PreserveNewest" />
+  <ItemGroup Condition="'$(NativeBinDir)' != ''">
+    <!-- 原生依赖：KaronOC（GPU 超频）、WinRing0（EC / SMU 访问） -->
+    <None Include="$(NativeBinDir)\KaronOC.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(NativeBinDir)\WinRing0x64.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(NativeBinDir)\WinRing0x64.sys" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="WarnMissingNativeDeps" BeforeTargets="Build"
+          Condition="'$(NativeBinDir)' == ''">
+    <Warning Text="未找到 KaronOC.dll / WinRing0x64.*，GPU 超频与 EC 直写功能将不可用。请确认 Port/dist/JiaoLongCCU-Port-v1.0/payload 存在。" />
+  </Target>
 
 </Project>

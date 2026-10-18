@@ -48,6 +48,16 @@ public sealed partial class ProtocolHandlers
             ["FanMaxRpm"] = _state.FanMaxRpm,
             ["FanMaxSwitch"] = _state.FanMaxSwitch,
             ["TempWall"] = ReadCpuPowerLimit(4, _state.CpuAmdTccTarget, 95),
+
+            // 各项启用开关（v9j）
+            ["Pl1Enabled"] = _state.Pl1Enabled,
+            ["Pl2Enabled"] = _state.Pl2Enabled,
+            ["UndervoltEnabled"] = _state.UndervoltEnabled,
+            ["GpuCoreOffsetEnabled"] = _state.GpuCoreOffsetEnabled,
+            ["GpuMemOffsetEnabled"] = _state.GpuMemOffsetEnabled,
+            ["GpuLockMhzEnabled"] = _state.GpuLockMhzEnabled,
+            ["FanMaxRpmEnabled"] = _state.FanMaxRpmEnabled,
+            ["TempWallEnabled"] = _state.TempWallEnabled,
         };
         await PublishAsync("JiaoLong/HomeStatus", payload, retain: true);
     }
@@ -99,11 +109,14 @@ public sealed partial class ProtocolHandlers
             case "UNDERVOLT":
             {
                 int steps = GetInt(root, "Steps");
+                bool en = GetBool(root, "Enabled", _state.UndervoltEnabled);
+                _state.UndervoltEnabled = en;
                 _state.CpuUndervoltSteps = Math.Clamp(steps, 0, 50);
+                int applyUv = en ? _state.CpuUndervoltSteps : 0;
                 if (_ec.Available)
                 {
-                    bool ok = _ec.SetCpuCoAll(_state.CpuUndervoltSteps);
-                    Log.Info($"home undervolt steps={_state.CpuUndervoltSteps}: {(ok ? "OK" : "FAILED")}");
+                    bool ok = _ec.SetCpuCoAll(applyUv);
+                    Log.Info($"home undervolt steps={applyUv} ({(en ? "on" : "off->0")}): {(ok ? "OK" : "FAILED")}");
                 }
                 _state.Save();
                 break;
@@ -111,18 +124,24 @@ public sealed partial class ProtocolHandlers
             case "SPL":
             {
                 int w = GetInt(root, "Watts");
+                bool en = GetBool(root, "Enabled", _state.Pl1Enabled);
+                _state.Pl1Enabled = en;
                 _state.CpuAmdSPL = w;
-                try { _mifs.SetCpuPower(2, (byte)Math.Clamp(w, 0, 200)); } catch { }
-                Log.Info($"home SPL = {w}W");
+                int applyW = en ? w : 85;
+                try { _mifs.SetCpuPower(2, (byte)Math.Clamp(applyW, 0, 200)); } catch { }
+                Log.Info($"home SPL = {applyW}W ({(en ? "on" : "off->default 85")})");
                 _state.Save();
                 break;
             }
             case "SPPT":
             {
                 int w = GetInt(root, "Watts");
+                bool en = GetBool(root, "Enabled", _state.Pl2Enabled);
+                _state.Pl2Enabled = en;
                 _state.CpuAmdSPPT = w;
-                try { _mifs.SetCpuPower(3, (byte)Math.Clamp(w, 0, 200)); } catch { }
-                Log.Info($"home SPPT = {w}W");
+                int applyW = en ? w : 120;
+                try { _mifs.SetCpuPower(3, (byte)Math.Clamp(applyW, 0, 200)); } catch { }
+                Log.Info($"home SPPT = {applyW}W ({(en ? "on" : "off->default 120")})");
                 _state.Save();
                 break;
             }
@@ -135,11 +154,15 @@ public sealed partial class ProtocolHandlers
                 break;
             case "GPU_CORE_OFFSET":
                 _state.GpuCoreOffset = GetInt(root, "Mhz");
+                _state.GpuCoreOffsetEnabled = GetBool(root, "Enabled", _state.GpuCoreOffsetEnabled);
+                Log.Info($"home GPU core offset={_state.GpuCoreOffset}MHz ({( _state.GpuCoreOffsetEnabled ? "on" : "off->0")})");
                 if (_state.GpuOverClockingSwitch) ApplyGpuOverclock();
                 _state.Save();
                 break;
             case "GPU_MEM_OFFSET":
                 _state.GpuMemOffset = GetInt(root, "Mhz");
+                _state.GpuMemOffsetEnabled = GetBool(root, "Enabled", _state.GpuMemOffsetEnabled);
+                Log.Info($"home GPU mem offset={_state.GpuMemOffset}MHz ({( _state.GpuMemOffsetEnabled ? "on" : "off->0")})");
                 if (_state.GpuOverClockingSwitch) ApplyGpuOverclock();
                 _state.Save();
                 break;
@@ -159,11 +182,12 @@ public sealed partial class ProtocolHandlers
             case "GPU_LOCK_MHZ":
             {
                 _state.GpuLockMhz = GetInt(root, "Mhz");
-                if (_state.GpuLockOn)
-                {
-                    bool ok = _nvml?.SetLockedClocks((uint)_state.GpuLockMhz) ?? false;
-                    Log.Info($"home GPU lock mhz={_state.GpuLockMhz}: {(ok ? "OK" : "FAILED")}");
-                }
+                _state.GpuLockMhzEnabled = GetBool(root, "Enabled", _state.GpuLockMhzEnabled);
+                bool applyLock = _state.GpuLockOn && _state.GpuLockMhzEnabled && _state.GpuLockMhz > 0;
+                bool ok = applyLock
+                    ? (_nvml?.SetLockedClocks((uint)_state.GpuLockMhz) ?? false)
+                    : (_nvml?.ResetLockedClocks() ?? false);
+                Log.Info($"home GPU lock mhz={_state.GpuLockMhz} ({(applyLock ? "on" : "off->unlock")}): {(ok ? "OK" : "FAILED")}");
                 _state.Save();
                 break;
             }
@@ -181,9 +205,10 @@ public sealed partial class ProtocolHandlers
                 {
                     int rpm = Math.Clamp(GetInt(root, "Value"), 0, 7000);
                     _state.FanMaxRpm = rpm;
+                    _state.FanMaxRpmEnabled = GetBool(root, "Enabled", _state.FanMaxRpmEnabled);
                     // 写入通道：固件 fn20/21 与 EC 直写实测均无效（报告 §14.6），此处置为
                     // 状态记忆 + 确认回执；>5800 由 UI 提示超转风险。
-                    Log.Info($"home MAX_FAN value={rpm}{(rpm > 5800 ? " (超转风险区 >5800)" : "")}");
+                    Log.Info($"home MAX_FAN value={rpm} ({( _state.FanMaxRpmEnabled ? "on" : "off->auto")}){(rpm > 5800 ? " (超转风险区 >5800)" : "")}");
                 }
                 _state.Save();
                 break;
@@ -191,9 +216,12 @@ public sealed partial class ProtocolHandlers
             case "TEMP_WALL":
             {
                 int t = Math.Clamp(GetInt(root, "Value"), 40, 110);
+                bool en = GetBool(root, "Enabled", _state.TempWallEnabled);
+                _state.TempWallEnabled = en;
                 _state.CpuAmdTccTarget = t;
-                try { _mifs.SetCpuPower(4, (byte)t); } catch { }
-                Log.Info($"home TEMP_WALL = {t}C");
+                int applyT = en ? t : 95;
+                try { _mifs.SetCpuPower(4, (byte)applyT); } catch { }
+                Log.Info($"home TEMP_WALL = {applyT}C ({(en ? "on" : "off->default 95")})");
                 _state.Save();
                 break;
             }
