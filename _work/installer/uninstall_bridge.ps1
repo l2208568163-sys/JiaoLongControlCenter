@@ -3,7 +3,7 @@ $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Stop-Service JiaoLongCCUBridge -Force -ErrorAction SilentlyContinue
-sc.exe delete JiaoLongCCUBridge | Out-Null
+Get-CimInstance Win32_Service -Filter "Name='JiaoLongCCUBridge'" -ErrorAction SilentlyContinue | Remove-CimInstance
 Get-Process JiaoLongCCUBridge -ErrorAction SilentlyContinue | Stop-Process -Force
 
 # 程序目录与日志（{app} 由卸载器清理，这里清历史安装目录与运行数据）
