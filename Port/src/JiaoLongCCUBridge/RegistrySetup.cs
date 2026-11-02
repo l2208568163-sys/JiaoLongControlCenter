@@ -23,6 +23,22 @@ public static class RegistrySetup
         return k?.GetValue(name);
     }
 
+    /// <summary>读 DWORD；不存在或类型不符返回 null（用于写入后的回读校验）。</summary>
+    public static int? ReadInt(string subkey, string name)
+    {
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(subkey);
+            var v = k?.GetValue(name);
+            if (v == null) return null;
+            return Convert.ToInt32(v);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static void SetupAll()
     {
         // 品牌与应用配置（等价官方安装器写入的注册表 + setup.ini 语义）

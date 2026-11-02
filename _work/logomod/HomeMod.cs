@@ -37,6 +37,9 @@ public static class HomeMod
         public bool PowerPlanHigh = true;
         public int UndervoltSteps;
         public int Spl = 85, Sppt = 120;
+        /// <summary>限制最高频率（MHz）。0/负 = 不限；UI 默认给一个保守上限，开关默认关。</summary>
+        public int FreqLimit = 4200;
+        public int CpuNominalMhz = 3600;
         public int CpuCores = 8, CpuThreads = 16;
         public bool GpuOcOn;
         public int GpuCoreOffset, GpuMemOffset;
@@ -45,10 +48,11 @@ public static class HomeMod
         public bool GpuLockSupported;
         public int GpuLockMin = 210, GpuLockMax = 3105;
         public int FanMaxRpm;
-        public bool FanMaxSwitch;
         public int TempWall = 95;
         // v9j：每项启用开关（关 = 该项恢复默认/不下发）
         public bool Pl1En = true, Pl2En = true, UvEn = true, CoreEn = true, MemEn = true, LockEn = true, FanRpmEn = true, TempWallEn = true;
+        /// <summary>限制频率开关（默认关，避免升级后改变原有睿频行为）。</summary>
+        public bool FreqLimitEn;
         public string FanCpuRpm = "-", FanGpuRpm = "-", FanCpuDuty = "-", FanGpuDuty = "-";
     }
 
@@ -284,9 +288,16 @@ public static class HomeMod
         rows.Add(StepperRow("短时功耗 PL2", 15, 130, 1, () => State.Sppt,
             v => Publish("SPPT", $",\"Watts\":{v},\"Enabled\":{B(State.Pl2En)}"), "W",
             () => State.Pl2En, on => { State.Pl2En = on; Publish("SPPT", $",\"Watts\":{State.Sppt},\"Enabled\":{B(on)}"); }));
-        rows.Add(StepperRow("CPU 降压步数", 0, 50, 1, () => State.UndervoltSteps,
-            v => Publish("UNDERVOLT", $",\"Steps\":{v},\"Enabled\":{B(State.UvEn)}"), "",
-            () => State.UvEn, on => { State.UvEn = on; Publish("UNDERVOLT", $",\"Steps\":{State.UndervoltSteps},\"Enabled\":{B(on)}"); }));
+
+        // 「降压步数」已按需求替换为「限制频率」（FREQ_LIMIT，MHz 上限）
+        rows.Add(StepperRow("限制频率", 1200, Math.Max(5200, State.CpuNominalMhz), 100, () => State.FreqLimit,
+            v => Publish("FREQ_LIMIT", $",\"Mhz\":{v},\"Enabled\":{B(State.FreqLimitEn)}"), "MHz",
+            () => State.FreqLimitEn, on => { State.FreqLimitEn = on; Publish("FREQ_LIMIT", $",\"Mhz\":{State.FreqLimit},\"Enabled\":{B(on)}"); }));
+
+        // 温度墙：从风扇卡移到 CPU 卡（TCC 目标温度，°C）
+        rows.Add(StepperRow("温度墙", 40, 110, 1, () => State.TempWall,
+            v => Publish("TEMP_WALL", $",\"Value\":{v},\"Enabled\":{B(State.TempWallEn)}"), "°C",
+            () => State.TempWallEn, on => { State.TempWallEn = on; Publish("TEMP_WALL", $",\"Value\":{State.TempWall},\"Enabled\":{B(on)}"); }));
 
         // v9g：频率曲线行移除——字号/行距放大后卡片高度不够，曲线会被底边裁掉；
         // 如需恢复：rows.Add(caption) + rows.Add(ChartBox(_cpuChartPath))
@@ -319,7 +330,7 @@ public static class HomeMod
         return NewPanel("显卡", rows);
     }
 
-    // ---------- 风扇面板（v9i：自定义转速 + 最大转速开关 + 温度墙；强冷由控制台承担已删） ----------
+    // ---------- 风扇面板（自定义转速上限，固件 fn20/21 通道；「最大转速」开关已移除） ----------
 
     private static TextBlock? _fanWarnText;
 
@@ -343,14 +354,7 @@ public static class HomeMod
         rows.Add(_fanWarnText);
         Syncs.Add(() => { if (_fanWarnText != null) TrySetOpacity(_fanWarnText, State.FanMaxRpm > 5800 ? 1.0 : 0.0); });
 
-        // 最大转速开关（对应旧程序 MAX_FAN Switch）
-        rows.Add(ToggleRow("最大转速", () => State.FanMaxSwitch,
-            on => Publish("MAX_FAN", $",\"Switch\":{on.ToString().ToLower()}")));
-
-        // 温度墙（温度曲线上限，MIFS fn23 子功能 4）
-        rows.Add(StepperRow("温度墙 (温度曲线)", 40, 110, 1,
-            () => State.TempWall, v => Publish("TEMP_WALL", $",\"Value\":{v},\"Enabled\":{B(State.TempWallEn)}"), "°C",
-            () => State.TempWallEn, on => { State.TempWallEn = on; Publish("TEMP_WALL", $",\"Value\":{State.TempWall},\"Enabled\":{B(on)}"); }));
+        // 「最大转速」开关已按需求移除（最大转速 = 转速拉满 7000 的特例，直接把数值拉满即可）
 
         return NewPanel("风扇", rows);
     }
@@ -895,19 +899,23 @@ public static class HomeMod
     {
         "长时功耗 PL1" => "SPL",
         "短时功耗 PL2" => "SPPT",
+        "限制频率" => "FREQ_LIMIT",
         "CPU 降压步数" => "UNDERVOLT",
         "核心偏移" => "GPU_CORE_OFFSET",
         "显存偏移" => "GPU_MEM_OFFSET",
         "锁定频率值" => "GPU_LOCK_MHZ",
         "自定义风扇转速" => "MAX_FAN",
+        "温度墙" => "TEMP_WALL",
         "温度墙 (温度曲线)" => "TEMP_WALL",
         _ => "NOOP"
     };
 
     private static string FieldOf(string label) => label switch
     {
+        "限制频率" => "Mhz",
         "CPU 降压步数" => "Steps",
         "自定义风扇转速" => "Value",
+        "温度墙" => "Value",
         "温度墙 (温度曲线)" => "Value",
         _ => "Watts"
     };
@@ -1053,8 +1061,10 @@ public static class HomeMod
                         State.GpuLockMhz = GetInt(json, "GpuLockMhz", 2100);
                         State.GpuLockSupported = GetBool(json, "GpuLockSupported");
                         State.FanMaxRpm = GetInt(json, "FanMaxRpm", 0);
-                        State.FanMaxSwitch = GetBool(json, "FanMaxSwitch");
                         State.TempWall = GetInt(json, "TempWall", 95);
+                        State.CpuNominalMhz = GetInt(json, "CpuNominalMhz", 3600);
+                        var fl = GetInt(json, "FreqLimit", -1);   // -1 = 后端未限制（保留本地值供再启用）
+                        if (fl > 0) State.FreqLimit = fl;
                         State.Pl1En = GetBool(json, "Pl1Enabled", true);
                         State.Pl2En = GetBool(json, "Pl2Enabled", true);
                         State.UvEn = GetBool(json, "UndervoltEnabled", true);
@@ -1063,6 +1073,7 @@ public static class HomeMod
                         State.LockEn = GetBool(json, "GpuLockMhzEnabled", true);
                         State.FanRpmEn = GetBool(json, "FanMaxRpmEnabled", true);
                         State.TempWallEn = GetBool(json, "TempWallEnabled", true);
+                        State.FreqLimitEn = GetBool(json, "FreqLimitEnabled", false);
                         var range = GetArrayRange(json, "GpuLockClocks");
                         if (range.HasValue)
                         {

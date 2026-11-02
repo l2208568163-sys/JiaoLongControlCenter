@@ -1,4 +1,5 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -111,6 +112,12 @@ public sealed partial class ProtocolHandlers : IPublisher
 
     public async void HandleMessage(string topic, byte[] payloadBytes)
     {
+        // 桥接自己注入 broker 的状态主题会被当成"客户端发布"回灌进来。
+        // 直接丢弃：既不该处理，也不该刷日志（否则每次状态广播都多两条噪音）。
+        if (topic is "Setting/Status" or "Settings/DeviceSwitchItemStatus" or "Setting/Error"
+                  or "Fan/Status" or "Keyboard/Status" or "Display/Status")
+            return;
+
         string json = Encoding.UTF8.GetString(payloadBytes);
         Log.Info($"MSG {topic} {json}");
         try
@@ -199,11 +206,12 @@ public sealed partial class ProtocolHandlers : IPublisher
                     break;
 
                 case "SetLightingLevel":
-                    if (root.TryGetProperty("light", out var lvl) && byte.TryParse(lvl.GetString(), out byte bright))
+                    if (root.TryGetProperty("light", out var lvl) && byte.TryParse(
+                            lvl.ValueKind == JsonValueKind.Number ? lvl.GetInt32().ToString() : lvl.GetString(), out byte bright))
                     {
                         _state.KeyboardBrightness = Math.Clamp(bright, (byte)0, (byte)3);
-                        _state.KeyboardOn = _state.KeyboardBrightness > 0 || _state.KeyboardOn;
-                        if (_state.KeyboardOn) SafeMifs(() => _mifs.SetKeyboardBrightness(_state.KeyboardBrightness));
+                        _state.KeyboardOn = _state.KeyboardBrightness > 0;
+                        ApplyKeyboardState(); // 亮度 0 = 关灯；调亮度时保持当前效果继续跑
                     }
                     break;
 
@@ -211,23 +219,33 @@ public sealed partial class ProtocolHandlers : IPublisher
                 {
                     string? effect = root.TryGetProperty("effect", out var e) ? e.GetString() : null;
                     string? mode = root.TryGetProperty("mode", out var m) ? m.GetString() : null;
+                    string? direction = root.TryGetProperty("direction", out var d) ? d.GetString() : null;
+                    string? speedStr = root.TryGetProperty("speed", out var spd)
+                        ? (spd.ValueKind == JsonValueKind.Number ? spd.GetInt32().ToString() : spd.GetString())
+                        : null;
                     byte? light = null;
-                    if (root.TryGetProperty("light", out var l2) && byte.TryParse(l2.GetString(), out byte lb))
-                        light = Math.Clamp(lb, (byte)0, (byte)3);
+                    if (root.TryGetProperty("light", out var l2))
+                    {
+                        var raw = l2.ValueKind == JsonValueKind.Number ? l2.GetInt32().ToString() : l2.GetString();
+                        if (byte.TryParse(raw, out byte lb)) light = Math.Clamp(lb, (byte)0, (byte)3);
+                    }
                     if (light.HasValue) _state.KeyboardBrightness = light.Value;
 
-                    // 颜色：取 ColorBuffer[0]（SingleZone 协议实际生效的第一色）
-                    (byte r, byte g, byte b)? color = null;
+                    // 调色板：ColorBuffer 可能含多个颜色（Mix 用），全部解析
+                    (byte r, byte g, byte b)[]? palette = null;
                     if (root.TryGetProperty("color", out var colorObj) &&
-                        colorObj.TryGetProperty("ColorBuffer", out var buf) &&
-                        buf.GetArrayLength() > 0 &&
-                        buf[0].TryGetProperty("R", out var rEl) && buf[0].TryGetProperty("G", out var gEl) && buf[0].TryGetProperty("B", out var bEl))
+                        colorObj.TryGetProperty("ColorBuffer", out var buf) && buf.ValueKind == JsonValueKind.Array)
                     {
-                        color = ((byte)Clamp255(rEl), (byte)Clamp255(gEl), (byte)Clamp255(bEl));
+                        var list = new List<(byte, byte, byte)>();
+                        foreach (var item in buf.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("R", out var rEl) && item.TryGetProperty("G", out var gEl) && item.TryGetProperty("B", out var bEl))
+                                list.Add(((byte)Clamp255(rEl), (byte)Clamp255(gEl), (byte)Clamp255(bEl)));
+                        }
+                        if (list.Count > 0) palette = list.ToArray();
                     }
 
-                    string? speed = root.TryGetProperty("speed", out var spd) ? spd.GetString() : null;
-                    ApplyKeyboardEffect(effect, mode, speed, color);
+                    ApplyKeyboardEffect(effect, mode, speedStr, palette is { Length: > 0 } ? palette[0] : null, direction, palette);
                     break;
                 }
 
@@ -250,47 +268,36 @@ public sealed partial class ProtocolHandlers : IPublisher
         return Math.Clamp(v, 0, 255);
     }
 
-    private void ApplyKeyboardEffect(string? effect, string? mode, string? speed, (byte r, byte g, byte b)? color)
+    private void ApplyKeyboardEffect(string? effect, string? mode, string? speed, (byte r, byte g, byte b)? color,
+                                     string? direction = null, (byte r, byte g, byte b)[]? palette = null)
     {
         _state.KeyboardOn = true;
+        string eff = string.IsNullOrWhiteSpace(effect) ? "Single" : effect!;
         if (color.HasValue)
         {
             _state.KeyboardColorHex = $"{color.Value.r:X2}{color.Value.g:X2}{color.Value.b:X2}";
         }
-        string eff = (effect ?? "single").ToLowerInvariant();
-        SafeMifs(() => _mifs.SetKeyboardBrightness(_state.KeyboardBrightness));
+        int speedLevel = int.TryParse(speed, out int sp) ? Math.Clamp(sp, 0, 4) : _state.KeyboardSpeed;
+        _state.KeyboardEffect = eff;
+        _state.KeyboardSpeed = speedLevel;
+        _state.KeyboardDirection = direction ?? "None";
 
-        switch (eff)
+        var prim = HexToRgb(_state.KeyboardColorHex);
+        var pal = (palette is { Length: > 0 }) ? palette : new[] { prim };
+        if (pal[0] != prim)
         {
-            case "single":
-            case "manual":
-            case "usermode":
-                // 固定颜色
-                _kbdFx.StopEffects();
-                _state.KeyboardMode = 2;
-                SafeMifs(() =>
-                {
-                    _mifs.SetKeyboardMode(2);
-                    Thread.Sleep(500); // 固件时序：切固定模式后延时写颜色
-                    var c = HexToRgb(_state.KeyboardColorHex);
-                    _mifs.SetKeyboardColor(c.r, c.g, c.b);
-                });
-                break;
-
-            case "breathing":
-                // 软件呼吸：亮度脉冲 + 静态色
-                _kbdFx.StartBreathing(_state.KeyboardColorHex);
-                _state.KeyboardMode = 2;
-                break;
-
-            default:
-                // 流光类（Rainbow/Wave/Mix/Flash/Ripple/Raindrop/Marquee/Spark/Aurora/Gaming/Sine/...）
-                // 固件"流光"模式在本机无可见效果 → 软件彩虹循环（旧程序同款）
-                _kbdFx.StartRainbowFlow(speed ?? "2");
-                _state.KeyboardMode = 2;
-                break;
+            // 调色板首位即当前主色，保持两者一致
+            prim = pal[0];
+            _state.KeyboardColorHex = $"{prim.r:X2}{prim.g:X2}{prim.b:X2}";
         }
-        Log.Info($"keyboard effect={effect} mode={mode} -> fx={_kbdFx.CurrentEffect} color={_state.KeyboardColorHex}");
+        _state.KeyboardPalette = string.Join(",", pal.Select(c => $"{c.r:X2}{c.g:X2}{c.b:X2}"));
+
+        // 亮度先落地（0 会被当成关灯，这里至少给 1）
+        SafeMifs(() => _mifs.SetKeyboardBrightness(Math.Max((byte)1, _state.KeyboardBrightness)));
+
+        var p = new KeyboardEffects.Params(eff, prim, pal, speedLevel, _state.KeyboardBrightness, _state.KeyboardDirection);
+        Log.Info($"keyboard effect={eff} speed={speedLevel} light={_state.KeyboardBrightness} dir={_state.KeyboardDirection} pal={_state.KeyboardPalette}");
+        _kbdFx.Apply(p);
     }
 
     private void ApplyKeyboardState()
@@ -299,22 +306,22 @@ public sealed partial class ProtocolHandlers : IPublisher
         {
             if (!_state.KeyboardOn)
             {
-                _kbdFx.StopEffects();
-                _mifs.SetKeyboardMode(0);
+                _kbdFx.StopAll();
+                // 固件忽略 fn16=0；亮度 0 才是有效关灯
+                _mifs.SetKeyboardBrightness(0);
                 return;
             }
-            _mifs.SetKeyboardBrightness(_state.KeyboardBrightness);
-            if (_kbdFx.CurrentEffect == "rainbow" || _kbdFx.CurrentEffect == "breathing")
-            {
-                return; // 动态效果循环运行中，不覆盖
-            }
-            _mifs.SetKeyboardMode(_state.KeyboardMode);
-            if (_state.KeyboardMode == 2)
-            {
-                Thread.Sleep(500);
-                var c = HexToRgb(_state.KeyboardColorHex);
-                _mifs.SetKeyboardColor(c.r, c.g, c.b);
-            }
+            _mifs.SetKeyboardBrightness(Math.Max((byte)1, _state.KeyboardBrightness));
+            _kbdFx.InvalidateMode();
+            var pal = (_state.KeyboardPalette ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(HexToRgb)
+                .ToArray();
+            if (pal.Length == 0) pal = new[] { HexToRgb(_state.KeyboardColorHex) };
+            _kbdFx.Apply(new KeyboardEffects.Params(
+                string.IsNullOrWhiteSpace(_state.KeyboardEffect) ? "Single" : _state.KeyboardEffect,
+                HexToRgb(_state.KeyboardColorHex), pal,
+                _state.KeyboardSpeed, _state.KeyboardBrightness, _state.KeyboardDirection));
         });
     }
 
@@ -347,9 +354,17 @@ public sealed partial class ProtocolHandlers : IPublisher
             byte fwMode = _mifs.GetKeyboardMode();
             if (fwMode == 0 && _state.KeyboardOn) _state.KeyboardOn = false;
             else if (fwMode != 0) { _state.KeyboardOn = true; _state.KeyboardMode = fwMode; }
-            var (r, g, b) = _mifs.GetKeyboardColor();
-            _state.KeyboardColorHex = $"{r:X2}{g:X2}{b:X2}";
-            _state.KeyboardBrightness = _mifs.GetKeyboardBrightness();
+
+            // 颜色/亮度回读只用于"关灯时不覆盖用户设置"的同步：
+            // 动态效果运行中颜色每帧在变，回读会污染调色板/主色，故仅在静态时同步颜色；
+            // 亮度为 0（关灯态）时不覆盖用户设定值。
+            if (_kbdFx.IsStatic)
+            {
+                var (r, g, b) = _mifs.GetKeyboardColor();
+                _state.KeyboardColorHex = $"{r:X2}{g:X2}{b:X2}";
+            }
+            byte fwBright = _mifs.GetKeyboardBrightness();
+            if (_state.KeyboardOn && fwBright > 0) _state.KeyboardBrightness = fwBright;
         }
         catch { }
 
@@ -407,151 +422,407 @@ public sealed partial class ProtocolHandlers : IPublisher
 
     private async Task HandleSettingControlAsync(string? action, JsonElement root)
     {
-        bool refreshGpuStatus = false;
+        if (string.IsNullOrWhiteSpace(action))
+        {
+            var bad = ActionResult.Fail("BAD_REQUEST", "命令缺少 Action 字段");
+            await PublishSettingErrorAsync("(missing)", bad);
+            await SendSettingStatusAsync();
+            return;
+        }
+
+        bool refreshGpuStatus = action is "GETSTATUS" or "GPU_HZSETTING";
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        ActionResult result;
+        try
+        {
+            // 放到线程池执行：设备禁用走 cfgMgr32，遇到驱动 veto 会同步阻塞 5 秒，
+            // 直接在 MQTT 回调线程里跑会把后续消息（遥测/风扇）一起堵住。
+            result = await Task.Run(() => ExecuteSettingAction(action, root));
+        }
+        catch (Exception ex)
+        {
+            result = ActionResult.Fail("EXCEPTION", ex.Message);
+            Log.Error($"SET {action} 异常: {ex}");
+        }
+
+        // 只有真正成功才落盘：失败时保持原状态，随后的 SendSettingStatusAsync 会把
+        // 真实状态回发给 UI，开关自动弹回——这就是"操作没生效"的可视反馈。
+        if (result.Ok) _state.Save();
+        else await PublishSettingErrorAsync(action, result);
+
+        Log.Info($"SET {action} -> {result} ({sw.ElapsedMilliseconds}ms)");
+
+        await SendSettingStatusAsync();
+        if (refreshGpuStatus) await PublishGpuDeviceStatusAsync();
+    }
+
+    /// <summary>
+    /// 错误主题：官方 UI 不订阅（忽略即无害），供日志与第三方工具定位失败原因。
+    /// </summary>
+    private Task PublishSettingErrorAsync(string action, ActionResult r) =>
+        PublishAsync("Setting/Error", new Dictionary<string, object?>
+        {
+            ["Action"] = action,
+            ["Code"] = r.Code,
+            ["Message"] = r.Message,
+            ["Timestamp"] = DateTime.Now.ToString("O"),
+        });
+
+    /// <summary>同步执行单个设置动作。失败返回原因，调用方据此决定是否持久化。</summary>
+    private ActionResult ExecuteSettingAction(string action, JsonElement root)
+    {
         switch (action)
         {
             case "GETSTATUS":
-                refreshGpuStatus = true;
-                break;
+                return ActionResult.Success("状态查询");
 
-            // —— 设备开关（SetupAPI 真实启用/禁用，官方 CCU 同语义）——
-            case "WIFI_OFF":
-                DeviceToggles.SetEnabled("wifi", false);
-                break;
-            case "WIFI_ON":
-                DeviceToggles.SetEnabled("wifi", true);
-                break;
-            case "BT_OFF":
-                DeviceToggles.SetEnabled("bt", false);
-                break;
-            case "BT_ON":
-                DeviceToggles.SetEnabled("bt", true);
-                break;
-            case "WEBCAM_OFF":
-                DeviceToggles.SetEnabled("cam", false);
-                break;
-            case "WEBCAM_ON":
-                DeviceToggles.SetEnabled("cam", true);
-                break;
+            // ===== 设备类开关（SetupAPI 真实启用/禁用）=====
+            case "WIFI_OFF":   return SetDeviceEnabled("wifi", false, "Wi-Fi");
+            case "WIFI_ON":    return SetDeviceEnabled("wifi", true,  "Wi-Fi");
+            case "BT_OFF":     return SetDeviceEnabled("bt",   false, "蓝牙");
+            case "BT_ON":      return SetDeviceEnabled("bt",   true,  "蓝牙");
+            case "WEBCAM_OFF": return SetDeviceEnabled("cam",  false, "摄像头");
+            case "WEBCAM_ON":  return SetDeviceEnabled("cam",  true,  "摄像头");
+
             case "SCANFORHARDWARECHANGE":
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("pnputil", "/scan-devices") { CreateNoWindow = true, UseShellExecute = false });
-                break;
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("pnputil", "/scan-devices")
+                    { CreateNoWindow = true, UseShellExecute = false });
+                    return ActionResult.Success("已触发硬件重新扫描");
+                }
+                catch (Exception ex)
+                {
+                    return ActionResult.Fail("SCAN_FAILED", "硬件扫描失败：" + ex.Message);
+                }
 
-            // —— Fn 锁 / 触摸板（MIFS fn11/fn12，真实生效）——
-            case "FNKEY_LOCK":
-                SafeMifs(() => _mifs.SetFnLock(true));
-                break;
-            case "FNKEY_UNLOCK":
-                SafeMifs(() => _mifs.SetFnLock(false));
-                break;
-            case "TOUCHPAD_TOGGLE_ON":
+            // ===== Win 键（用户会话低级键盘钩子，见 WinkeyHook.cs）=====
+            case "WINKEY_LOCK":   return ApplyWinkeyLock(true);
+            case "WINKEY_UNLOCK": return ApplyWinkeyLock(false);
+
+            // ===== OSD（写官方约定的 OSDHidden）=====
+            // 语义注意：OSD_HIDDEN_ON = 隐藏 OSD = 注册表写 1
+            case "OSD_HIDDEN_ON":  return ApplyOsdHidden(true);
+            case "OSD_HIDDEN_OFF": return ApplyOsdHidden(false);
+
+            // ===== 触摸板（固件 fn12 + Windows 精密触摸板状态双写）=====
             case "TOUCHPAD_ON":
-                SafeMifs(() => _mifs.SetTouchpadLocked(false));
-                break;
-            case "TOUCHPAD_TOGGLE_OFF":
+            case "TOUCHPAD_TOGGLE_ON":  return ApplyTouchpadEnabled(true);
             case "TOUCHPAD_OFF":
-                SafeMifs(() => _mifs.SetTouchpadLocked(true));
-                break;
+            case "TOUCHPAD_TOGGLE_OFF": return ApplyTouchpadEnabled(false);
+            case "TOUCHPAD_LED_ON":
+            case "TOUCHPAD_LED_OFF":
+                return ActionResult.Success("指示灯由固件跟随状态自动变化，无需单独处理");
 
-            // —— 状态记忆类（无固件后端，UI 开关状态可保持）——
-            case "WINKEY_LOCK": _state.WinKeyState = "LOCK"; break;
-            case "WINKEY_UNLOCK": _state.WinKeyState = "UNLOCK"; break;
-            case "NUMPAD_LOCK": _state.NumPadState = "LOCK"; break;
-            case "NUMPAD_UNLOCK": _state.NumPadState = "UNLOCK"; break;
-            case "OSD_HIDDEN_ON": _state.OsdState = "OFF"; break;
-            case "OSD_HIDDEN_OFF": _state.OsdState = "ON"; break;
+            // ===== Fn 键（MIFS fn11，写入后回读校验）=====
+            case "FNKEY_LOCK":   return ApplyFnLock(true);
+            case "FNKEY_UNLOCK": return ApplyFnLock(false);
 
-            // —— 高性能电源模式（电池页「电源设置」，真实生效：切 Windows 电源计划，
-            //     官方 GCUService 的 PowerPlanSetting.HighPerformanceActive 同语义）——
+            // ===== 能力位不满足的项：明确拒绝，避免"点了没反应" =====
+            case "NUMPAD_LOCK":
+            case "NUMPAD_UNLOCK":
+                if (!SystemCaps.NumPadSupported)
+                    return ActionResult.Fail("NOT_SUPPORTED", "本机型不支持数字键盘开关（NumPadSupport=0）");
+                return ActionResult.Fail("NOT_IMPLEMENTED", "固件未提供数字键盘控制通道，未做状态伪装");
+
+            case "Uni_ON":
+            case "Uni_OFF":
+            case "Omni_ON":
+            case "Omni_OFF":
+                if (!SystemCaps.MicNoiseReductionSupported)
+                    return ActionResult.Fail("NOT_SUPPORTED", "本机型不支持麦克风降噪（MicNoiseReductionSupport=0）");
+                return ActionResult.Fail("NOT_IMPLEMENTED", "麦克风降噪依赖 Realtek 音频组件，桥接未实现");
+
+            case "LOCALDIMMING_ON":
+            case "LOCALDIMMING_OFF":
+                if (!SystemCaps.LocalDimmingSupported)
+                    return ActionResult.Fail("NOT_SUPPORTED", "面板不支持局部调光（LocalDimmingSupport=0）");
+                return ActionResult.Fail("NOT_IMPLEMENTED", "局部调光未实现");
+
+            // ===== 高性能电源模式（计划 + overlay 一起切，失败不记账）=====
             case "HIGHPERFORMANCEPOWERMODE_ON":
             {
+                if (!WinPower.SetActivePlan(WinPower.PlanHigh))
+                    return ActionResult.Fail("POWER_PLAN_FAILED", "切换到高性能电源计划失败");
+                // 只切计划不切 overlay 时，Win11 设置页的「电源模式」仍显示「平衡」，两处状态打架
+                bool overlay = WinPower.SetOverlayBestPerformance();
                 _state.HighPerformancePowerMode = true;
-                bool ok = WinPower.SetActivePlan(WinPower.PlanHigh);
-                Log.Info($"高性能电源模式 ON -> 电源计划 高性能{(ok ? " 已激活" : " 激活失败")}");
-                break;
+                return ActionResult.Success(overlay
+                    ? "已切换到高性能电源计划 + 最佳性能模式"
+                    : "已切换到高性能电源计划（本系统不支持电源模式覆盖层）");
             }
             case "HIGHPERFORMANCEPOWERMODE_OFF":
             {
+                if (!WinPower.SetActivePlan(WinPower.PlanBalanced))
+                    return ActionResult.Fail("POWER_PLAN_FAILED", "切换到平衡电源计划失败");
+                WinPower.SetOverlayBalanced();
                 _state.HighPerformancePowerMode = false;
-                bool ok = WinPower.SetActivePlan(WinPower.PlanBalanced);
-                Log.Info($"高性能电源模式 OFF -> 电源计划 平衡{(ok ? " 已激活" : " 激活失败")}");
-                break;
+                return ActionResult.Success("已切换到平衡电源计划 + 平衡模式");
             }
 
-            // —— 电池页其余开关（BIOS/固件级功能，本机无接口，仅状态记忆保持 UI 开关）——
-            case "USB_CHARGER_ON": _state.UsbChargerState = "ON"; break;
-            case "USB_CHARGER_OFF": _state.UsbChargerState = "OFF"; break;
-            case "ACRECOVERY_TOGGLE_ON": _state.AcRecoveryState = "ON"; break;
-            case "ACRECOVERY_TOGGLE_OFF": _state.AcRecoveryState = "OFF"; break;
-            case "BATTERYLOGO_TOGGLE_ON": _state.BatteryLogoState = "ON"; break;
-            case "BATTERYLOGO_TOGGLE_OFF": _state.BatteryLogoState = "OFF"; break;
+            // ===== 电池页其余开关（固件/BIOS 级，本机无接口，仅状态记忆）=====
+            case "USB_CHARGER_ON":        _state.UsbChargerState = "ON";    return ActionResult.Success("仅状态记忆（固件无 USB 充电控制接口）");
+            case "USB_CHARGER_OFF":       _state.UsbChargerState = "OFF";   return ActionResult.Success("仅状态记忆（固件无 USB 充电控制接口）");
+            case "ACRECOVERY_TOGGLE_ON":  _state.AcRecoveryState = "ON";    return ActionResult.Success("仅状态记忆（BIOS 级功能）");
+            case "ACRECOVERY_TOGGLE_OFF": _state.AcRecoveryState = "OFF";   return ActionResult.Success("仅状态记忆（BIOS 级功能）");
+            case "BATTERYLOGO_TOGGLE_ON": _state.BatteryLogoState = "ON";   return ActionResult.Success("仅状态记忆（BIOS 级功能）");
+            case "BATTERYLOGO_TOGGLE_OFF":_state.BatteryLogoState = "OFF";  return ActionResult.Success("仅状态记忆（BIOS 级功能）");
+
             case "DEEPSLEEP_ON":
-                _state.DeepSleepState = "ON";
-                if (root.TryGetProperty("Secs", out var secs)) _state.DeepSleepSeconds = secs.GetInt32();
-                Log.Info("DEEPSLEEP_ON 仅状态记忆：深度睡眠为 BIOS 级功能，本机无固件接口");
-                break;
-            case "DEEPSLEEP_OFF": _state.DeepSleepState = "OFF"; break;
-
-            // —— 独显直连（fn9，重启生效；状态以固件 GET 为准，与旧程序一致）——
-            case "DGPU_DIRECT_CONNECT_TOGGLE_ON":
-                SafeMifs(() => _mifs.SetGpuMode(1));
-                _state.DgpuDirectOn = true;
-                break;
-            case "DGPU_DIRECT_CONNECT_TOGGLE_OFF":
-                SafeMifs(() => _mifs.SetGpuMode(0));
-                _state.DgpuDirectOn = false;
-                break;
-            case "DGPU_DIRECT_CONNECT_RESTART":
-                Log.Info("用户确认重启以应用显卡模式");
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown", "/r /t 5 /c \"机械革命控制中心：显卡模式已切换，即将重启\"") { CreateNoWindow = true, UseShellExecute = false });
-                break;
-
-            // —— 刷新率（经用户会话助手执行） ——
-            case "GPU_HZSETTING":
-                if (root.TryGetProperty("Hz", out var hzEl) && int.TryParse(hzEl.GetString(), out int hz))
+            {
+                int seconds = _state.DeepSleepSeconds;
+                if (root.TryGetProperty("Secs", out var secs) && secs.ValueKind == JsonValueKind.Number)
                 {
-                    var r = RunDisplayHelper(hz);
-                    Log.Info($"刷新率切换 {hz}Hz: {(r.HasValue ? $"applied={r.Value.applied}" : "失败")}");
+                    seconds = secs.GetInt32();
+                    if (seconds < 0 || seconds > 86400)
+                        return ActionResult.Fail("BAD_PARAM", "深度睡眠时长需在 0–86400 秒之间");
                 }
-                refreshGpuStatus = true;
-                break;
-            case "GPU_DC_HZ": // 自动刷新率开关：仅记录，不回发状态（避免与 UI 形成乒乓循环）
-                Log.Info($"GPU_DC_HZ Enable={root.TryGetProperty("Enable", out var en) && en.GetBoolean()}");
-                break;
+                if (seconds <= 0)
+                {
+                    // UI 的 DeepSleepSwitch setter 在服务端回发状态变化时会回写一次，
+                    // 此时下拉可能还没同步出有效值（Secs=0）。不要失败（失败回环会让开关反复弹），
+                    // 依次回退到上次保存值 / 首档 900 秒。
+                    seconds = _state.DeepSleepSeconds > 0 ? _state.DeepSleepSeconds : 900;
+                }
 
-            // —— 校色（sRGB ICC 关联）——
+                // 本机无 S3，官方 BIOS 级「深度睡眠」不可复刻；用「空闲 N 秒后休眠」等价替代。
+                // 首次开启时记录用户原值，关闭时原样恢复（本机出厂为 0 = 从不休眠）。
+                if (_state.DeepSleepPrevHibernateIdle is null)
+                {
+                    int prev = WinPower.GetHibernateIdleSeconds();
+                    _state.DeepSleepPrevHibernateIdle = prev >= 0 ? prev : 0;
+                }
+                if (!WinPower.SetHibernateIdleSeconds(seconds))
+                    return ActionResult.Fail("POWER_CFG_FAILED", "写入休眠空闲超时失败（电源计划不可写）");
+
+                _state.DeepSleepSeconds = seconds;
+                _state.DeepSleepState = "ON";
+                return ActionResult.Success($"空闲 {seconds} 秒后进入休眠（本机无 S3，以此替代 BIOS 深度睡眠）");
+            }
+            case "DEEPSLEEP_OFF":
+            {
+                int restore = _state.DeepSleepPrevHibernateIdle ?? 0;
+                if (!WinPower.SetHibernateIdleSeconds(restore))
+                    return ActionResult.Fail("POWER_CFG_FAILED", "恢复休眠空闲超时失败");
+                _state.DeepSleepState = "OFF";
+                return ActionResult.Success(restore == 0 ? "已关闭（恢复为从不休眠）" : $"已恢复为 {restore} 秒后休眠");
+            }
+
+            // ===== 独显直连（fn9，重启生效）=====
+            case "DGPU_DIRECT_CONNECT_TOGGLE_ON":
+            {
+                if (!TryMifs(() => _mifs.SetGpuMode(1)))
+                    return ActionResult.Fail("MIFS_FAILED", "写入显卡模式失败（MIFS 不可用）");
+                _state.DgpuDirectOn = true;
+                return ActionResult.Success("已切换到独显直连（重启生效）");
+            }
+            case "DGPU_DIRECT_CONNECT_TOGGLE_OFF":
+            {
+                if (!TryMifs(() => _mifs.SetGpuMode(0)))
+                    return ActionResult.Fail("MIFS_FAILED", "写入显卡模式失败（MIFS 不可用）");
+                _state.DgpuDirectOn = false;
+                return ActionResult.Success("已切换到混合模式（重启生效）");
+            }
+            case "DGPU_DIRECT_CONNECT_RESTART":
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown",
+                        "/r /t 5 /c \"机械革命控制中心：显卡模式已切换，即将重启\"") { CreateNoWindow = true, UseShellExecute = false });
+                    return ActionResult.Success("5 秒后重启");
+                }
+                catch (Exception ex)
+                {
+                    return ActionResult.Fail("RESTART_FAILED", ex.Message);
+                }
+
+            // ===== 刷新率（经用户会话助手执行）=====
+            case "GPU_HZSETTING":
+            {
+                string hzText = root.TryGetProperty("Hz", out var hzEl) ? hzEl.ToString() : "";
+                if (!int.TryParse(hzText, out int hz) || hz <= 0)
+                    return ActionResult.Fail("BAD_PARAM", $"Hz 参数无效：{hzText}");
+
+                var rr = RunDisplayHelper(hz);
+                if (rr == null)
+                    return ActionResult.Fail("DISPLAY_HELPER_FAILED", "显示助手执行失败（用户会话不可用或缺少 Python）");
+
+                return rr.Value.applied == hz
+                    ? ActionResult.Success($"已切换到 {hz}Hz")
+                    : ActionResult.Fail("HZ_NOT_APPLIED", $"目标 {hz}Hz 未生效（当前 {rr.Value.cur}Hz）");
+            }
+            case "GPU_DC_HZ": // 自动刷新率：仅记录，不回发状态（避免与 UI 乒乓）
+                Log.Info($"GPU_DC_HZ Enable={(root.TryGetProperty("Enable", out var en) && en.ValueKind == JsonValueKind.True)}");
+                return ActionResult.Success("仅记录");
+
+            // ===== 校色（sRGB ICC 关联）=====
             case "COLOR_CALIBRATION_ON":
             case "COLOR_CALIBRATION_ON_DEFAULT":
             case "COLOR_CALIBRATION_ON_SRGB":
             case "COLOR_CALIBRATION_ON_P3":
             case "COLOR_CALIBRATION_ON_ADOBERGB":
-                _state.ColorCalibrationOn = DisplayController.EnableSrgb();
+            {
+                if (!DisplayController.EnableSrgb())
+                    return ActionResult.Fail("ICC_FAILED", "关联 sRGB ICC 配置文件失败");
+                _state.ColorCalibrationOn = true;
                 RegistrySetup.WriteDword(@"SOFTWARE\OEM\GamingCenter2\MySetting\DisplayFeatures", "ColorCalibration", 2);
-                break;
+                return ActionResult.Success("已启用校色");
+            }
             case "COLOR_CALIBRATION_OFF":
-                _state.ColorCalibrationOn = !DisplayController.DisableSrgb();
+            {
+                if (!DisplayController.DisableSrgb())
+                    return ActionResult.Fail("ICC_FAILED", "取消 sRGB ICC 关联失败");
+                _state.ColorCalibrationOn = false;
                 RegistrySetup.WriteDword(@"SOFTWARE\OEM\GamingCenter2\MySetting\DisplayFeatures", "ColorCalibration", 0);
-                break;
+                return ActionResult.Success("已关闭校色");
+            }
 
-            // —— 键盘/光条定时关灯 ——
+            // ===== 键盘/光条定时关灯 =====
             case "KEYBOARD_LIGHTBAR_TIMER_ON":
-                if (root.TryGetProperty("Mins", out var mins))
-                {
-                    _state.KeyboardTimerDeadline = DateTime.UtcNow.AddMinutes(mins.GetDouble()).ToString("O");
-                    Log.Info($"键盘定时关灯: {mins.GetRawText()} 分钟后");
-                }
-                break;
+            {
+                if (!root.TryGetProperty("Mins", out var mins) || mins.ValueKind != JsonValueKind.Number)
+                    return ActionResult.Fail("BAD_PARAM", "Mins 参数无效");
+                double m = mins.GetDouble();
+                if (m <= 0 || m > 1440)
+                    return ActionResult.Fail("BAD_PARAM", "定时时长需在 1–1440 分钟之间");
+                _state.KeyboardTimerDeadline = DateTime.UtcNow.AddMinutes(m).ToString("O");
+                return ActionResult.Success($"{m} 分钟后关灯");
+            }
             case "KEYBOARD_LIGHTBAR_TIMER_OFF":
                 _state.KeyboardTimerDeadline = null;
-                break;
+                return ActionResult.Success("已取消定时关灯");
 
             default:
-                Log.Info($"setting action {action} acknowledged");
-                break;
+                return ActionResult.Fail("UNKNOWN_ACTION", "未实现的设置动作");
         }
-        _state.Save();
-        await SendSettingStatusAsync();
-        if (refreshGpuStatus) await PublishGpuDeviceStatusAsync();
+    }
+
+    // -------------------- 设置动作的具体落地 --------------------
+
+    // 防回声：官方 UI 的开关绑定在收到 Setting/Status 后会反向触发一次命令
+    // （例如收到 OSD=OFF 就把开关 Unchecked，进而发 OSD_HIDDEN_ON），
+    // 服务端再回发状态又触发 UI……实测会形成 ~60ms 的乒乓循环。
+    // 这里记录"服务端最后一次真实设置的结果"，短窗口内的反向指令直接判为回声。
+    private readonly Dictionary<string, (string state, long tick)> _lastApplied = new();
+    private readonly object _debounceGate = new();
+    private const int EchoWindowMs = 1000;
+
+    private bool IsEcho(string key, string targetState)
+    {
+        lock (_debounceGate)
+        {
+            if (!_lastApplied.TryGetValue(key, out var last)) return false;
+            return last.state != targetState && Environment.TickCount64 - last.tick < EchoWindowMs;
+        }
+    }
+
+    private void MarkApplied(string key, string state)
+    {
+        lock (_debounceGate) _lastApplied[key] = (state, Environment.TickCount64);
+    }
+
+    /// <summary>设备类开关：找不到设备、权限不足、驱动否决都会带回明确原因。</summary>
+    private ActionResult SetDeviceEnabled(string kind, bool enable, string label)
+    {
+        var t = DeviceToggles.SetEnabledEx(kind, enable);
+        if (t.Ok)
+            return ActionResult.Success($"{label}{(enable ? "已启用" : "已停用")}（{t.Changed}/{t.Total} 台）");
+
+        // cfgMgr32 错误码翻译成人能看懂的原因（官方 Disable-PnpDevice 在此场景同样失败）
+        string reason = t.ErrorCode switch
+        {
+            23 => "设备被驱动或占用方否决（CR_REMOVE_VETOED），请关闭正在使用该设备的程序后重试",
+            24 => "设备资源冲突，无法移除（CR_CANT_SHARE_IRQ）",
+            31 => "设备当前不可禁用（CR_NOT_DISABLEABLE）",
+            _ => string.IsNullOrEmpty(t.Detail) ? "未知原因" : t.Detail,
+        };
+        return ActionResult.Fail("DEVICE_FAILED",
+            $"{label}{(enable ? "启用" : "停用")}失败：{reason}" + (t.ErrorCode != 0 ? $"（cr={t.ErrorCode}）" : ""));
+    }
+
+    private ActionResult ApplyWinkeyLock(bool locked)
+    {
+        string target = locked ? "LOCK" : "UNLOCK";
+        if (IsEcho("WinKey", target)) return ActionResult.Success("状态已一致（回声忽略）");
+
+        if (!WinkeyController.Apply(locked))
+            return ActionResult.Fail("HOOK_FAILED", "键盘钩子未就绪（用户会话不可用或被安全软件拦截）");
+        _state.WinKeyState = target;
+        MarkApplied("WinKey", target);
+        return ActionResult.Success(locked ? "Win 键已锁定" : "Win 键已解锁");
+    }
+
+    private ActionResult ApplyOsdHidden(bool hidden)
+    {
+        string target = hidden ? "HIDDEN" : "VISIBLE";
+        if (IsEcho("OSD", target)) return ActionResult.Success("状态已一致（回声忽略）");
+
+        RegistrySetup.WriteDword(SettingPaths.MySettingKey, SettingPaths.OsdHiddenValue, hidden ? 1 : 0);
+        int? readback = RegistrySetup.ReadInt(SettingPaths.MySettingKey, SettingPaths.OsdHiddenValue);
+        if (readback != (hidden ? 1 : 0))
+            return ActionResult.Fail("REG_WRITE_FAILED", "OSD 开关写入注册表后回读不一致");
+
+        _state.OsdState = hidden ? "OFF" : "ON";
+        MarkApplied("OSD", target);
+        return ActionResult.Success(hidden ? "OSD 已关闭" : "OSD 已开启");
+    }
+
+    /// <summary>
+    /// 触摸板：固件 fn12 与 Windows 精密触摸板状态同时设置。
+    /// 只写一处会出现"控制中心说关了、系统设置里还开着"的割裂。
+    /// </summary>
+    private ActionResult ApplyTouchpadEnabled(bool enable)
+    {
+        string target = enable ? "ON" : "OFF";
+        if (IsEcho("Touchpad", target)) return ActionResult.Success("状态已一致（回声忽略）");
+
+        bool mifsOk = false;
+        string mifsErr = "";
+        try
+        {
+            _mifs.SetTouchpadLocked(!enable);
+            mifsOk = _mifs.GetTouchpadLocked() == !enable;
+            if (!mifsOk) mifsErr = "回读不一致";
+        }
+        catch (Exception ex)
+        {
+            mifsErr = ex.Message;
+            Log.Error("touchpad MIFS: " + ex.Message);
+        }
+
+        bool ptpOk = UserRegistry.WriteDword(SettingPaths.PrecisionTouchpadKey,
+            SettingPaths.PrecisionTouchpadEnabled, enable ? 1 : 0, out string ptpDetail);
+        if (!ptpOk) Log.Error("touchpad PTP write: " + ptpDetail);
+
+        if (!mifsOk && !ptpOk)
+            return ActionResult.Fail("TOUCHPAD_FAILED", $"固件与系统触摸板状态均写入失败（{mifsErr} / {ptpDetail}）");
+
+        MarkApplied("Touchpad", target);
+        return ActionResult.Success($"{(enable ? "启用" : "停用")}触摸板（固件={mifsOk}，系统={ptpOk}）");
+    }
+
+    private ActionResult ApplyFnLock(bool locked)
+    {
+        string target = locked ? "LOCK" : "UNLOCK";
+        if (IsEcho("FnKey", target)) return ActionResult.Success("状态已一致（回声忽略）");
+
+        try
+        {
+            _mifs.SetFnLock(locked);
+            if (_mifs.GetFnLock() != locked)
+                return ActionResult.Fail("READBACK_MISMATCH", "Fn 锁写入后回读不一致");
+            MarkApplied("FnKey", target);
+            return ActionResult.Success(locked ? "Fn 键已锁定" : "Fn 键已解锁");
+        }
+        catch (Exception ex)
+        {
+            return ActionResult.Fail("MIFS_FAILED", "Fn 锁写入失败：" + ex.Message);
+        }
+    }
+
+    private bool TryMifs(Action a)
+    {
+        try { a(); return true; }
+        catch (Exception ex) { Log.Error("MIFS: " + ex.Message); return false; }
     }
 
     /// <summary>MIFS 调用容错包装。</summary>
@@ -678,14 +949,16 @@ public sealed partial class ProtocolHandlers : IPublisher
         try { fnLock = _mifs.GetFnLock(); } catch { }
         try { tpLock = _mifs.GetTouchpadLocked(); } catch { }
         try { gpuMode = _mifs.GetGpuMode(); } catch { }
+        // 深度睡眠已落到 HIBERNATEIDLE：回发系统真实值，避免 state.json 与系统脱节
+        int hibernateIdle = WinPower.GetHibernateIdleSeconds();
 
         var setting = new Dictionary<string, object?>
         {
             ["FnKey"] = fnLock ? "LOCK" : "UNLOCK",
-            ["WinKey"] = _state.WinKeyState,
+            ["WinKey"] = WinkeyController.IsLocked() ? "LOCK" : "UNLOCK",
             ["TouchpadToggle"] = tpLock ? "OFF" : "ON",
             ["PowerMode"] = _state.OperatingMode.ToString(),
-            ["OSD"] = _state.OsdState,
+            ["OSD"] = ReadOsdState(),
             ["NumPad"] = _state.NumPadState,
             ["FnWith1HotkeySwitch_Status"] = "OFF",
             ["AcRecoverySwitch_Support"] = "0",
@@ -700,8 +973,8 @@ public sealed partial class ProtocolHandlers : IPublisher
             // —— 电池页（UI 按 Contains("OFF") 判开关状态）——
             ["UsbCharger"] = _state.UsbChargerState,
             ["HighPerformancePowerModeSwitch"] = _state.HighPerformancePowerMode ? "ON" : "OFF",
-            ["DeepSleepSwitch"] = _state.DeepSleepState,
-            ["DeepSleepTime"] = _state.DeepSleepSeconds.ToString(),
+            ["DeepSleepSwitch"] = hibernateIdle > 0 ? "ON" : "OFF",
+            ["DeepSleepTime"] = (hibernateIdle > 0 ? hibernateIdle : _state.DeepSleepSeconds).ToString(),
             ["AcRecoverySwitch_Status"] = _state.AcRecoveryState,
             ["BatteryLogo_Status"] = _state.BatteryLogoState,
             ["LocalDimmingSwitch"] = "LOCALDIMMING_OFF",
@@ -719,8 +992,19 @@ public sealed partial class ProtocolHandlers : IPublisher
         await PublishAsync("Settings/DeviceSwitchItemStatus", switches);
     }
 
-    private double? RemainingKeyboardTimerMinutes()
+    /// <summary>OSD 开关以注册表为准（官方 OSD 进程读的就是这个键），读不到才回退内存状态。</summary>
+    private string ReadOsdState()
     {
+        try
+        {
+            int? v = RegistrySetup.ReadInt(SettingPaths.MySettingKey, SettingPaths.OsdHiddenValue);
+            if (v.HasValue) return v.Value == 1 ? "OFF" : "ON";
+        }
+        catch { }
+        return _state.OsdState;
+    }
+
+    private double? RemainingKeyboardTimerMinutes()    {
         if (string.IsNullOrEmpty(_state.KeyboardTimerDeadline)) return null;
         if (!DateTime.TryParse(_state.KeyboardTimerDeadline, null, System.Globalization.DateTimeStyles.RoundtripKind, out var deadline))
             return null;
@@ -754,35 +1038,79 @@ public sealed partial class ProtocolHandlers : IPublisher
             case "EC_PROBE":
             {
                 Log.Info("EC probe: " + _ec.Probe());
+                // MIFS fn20/21 回环诊断：固件原生「自定义风扇转速」通道（开关+百分比）
+                try
+                {
+                    var mode = _mifs.GetPerformanceMode();
+                    _mifs.SetFanSpeedSwitch(true);
+                    _mifs.SetFanSpeed(50);
+                    var sw = _mifs.GetFanSpeedSwitch();
+                    var val = _mifs.GetFanSpeedValue();
+                    Log.Info($"MIFS fan diag: perfMode={mode} set(1,50) -> readback switch={sw} value={val}");
+                }
+                catch (Exception ex) { Log.Info("MIFS fan diag failed: " + ex.Message); }
                 // 变体 B 若把占空比写进去了，风扇应有反应：读回并发布 FanInfo
                 await PublishTelemetryAsync();
                 break;
             }
 
+            case "FAN_RESET":
+            {
+                // 风扇控制状态修复：Fan_Clear 清手动锁存 + 关固件自定义转速开关，
+                // 交还固件自动控制。用于异常软件把风扇锁死后的恢复。
+                int before = 0;
+                try { var r = _mifs.GetFanSpeeds(); before = Math.Max(r.Item1, r.Item2); } catch { }
+                _fan.StopLoop();
+                if (_ec.Available) _ec.ReleaseFanManual();
+                try { _mifs.SetFanSpeedSwitch(false); } catch { }
+                _state.FanBoost = false;
+                _state.Save();
+                await Task.Delay(4000);
+                int after = 0;
+                try { var r2 = _mifs.GetFanSpeeds(); after = Math.Max(r2.Item1, r2.Item2); } catch { }
+                Log.Info($"fan reset: rpm {before} -> {after} (ec manual cleared, fn20 off)");
+                await SendFanStatusAsync();
+                break;
+            }
+
             case "FAN_BOOST_ON":
+            {
                 _state.FanBoost = true;
-                // 固件 fn20/fn21 锁速对风扇无实际作用，走 EC 直写（旧程序验证过的路径）
+                _fan.StopLoop();
+                // 实测有效序列（2026-10-18 21:13 验证）：EC 手动占空比 100 → 风扇
+                // 保持厂商上限 ~5800RPM（与温度无关）。MIFS fn20/21 仅作回执兼容。
                 if (_ec.Available)
                 {
-                    _fan.StopLoop();
-                    _ec.SetFanDuty(100, 100);
+                    _ec.SetBoostManual();
+                    Log.Info("fan boost ON via EC manual duty 100/100");
                 }
                 else
                 {
-                    _mifs.SetFanSpeedSwitch(true);
-                    _mifs.SetFanSpeed(100);
+                    try
+                    {
+                        _mifs.SetFanSpeedSwitch(true);
+                        _mifs.SetFanSpeed(100);
+                        Log.Info("fan boost ON via MIFS fn20/21 = 100%");
+                    }
+                    catch { }
                 }
                 _state.Save();
                 await SendFanStatusAsync();
                 break;
+            }
             case "FAN_BOOST_OFF":
+            {
                 _state.FanBoost = false;
-                if (_state.CustomLoopActive) _fan.EnsureLoop(); // 自定义模式下恢复曲线
-                else if (_ec.Available) _ec.ReleaseFanManual();
-                else _mifs.SetFanSpeedSwitch(false);
+                if (_state.CustomLoopActive || _fan.FixedRpmActive) _fan.EnsureLoop(); // 恢复曲线/固定转速
+                else
+                {
+                    if (_ec.Available) _ec.ReleaseFanManual(); // Fan_Clear → 自动
+                    try { _mifs.SetFanSpeedSwitch(false); } catch { }
+                }
                 _state.Save();
                 await SendFanStatusAsync();
                 break;
+            }
 
             case "GET_FAN_SPEED_CURVE_SETTING":
                 await SendFanTableAsync();
@@ -851,10 +1179,10 @@ public sealed partial class ProtocolHandlers : IPublisher
         _state.CustomLoopActive = false;
         _state.FanBoost = false; // 模式切换恢复固件自动风扇
         _fan.StopLoop();
-        _ec.ReleaseFanManual(); // 退出 EC 手动锁速，交还固件
+        if (_ec.FanEcSafe) _ec.ReleaseFanManual(); // 退出 EC 手动锁速，交还固件（仅 ITE 映射机型）
         try
         {
-            _mifs.SetFanSpeedSwitch(false);
+            _mifs.SetFanSpeedSwitch(false); // 同步清除自定义转速上限
         }
         catch { }
         try
@@ -1127,21 +1455,45 @@ public sealed partial class ProtocolHandlers : IPublisher
 
     private async Task SendBatteryStatusAsync()
     {
-        // 内核电源状态：本机 Win32_Battery 不上报容量（空值），GetSystemPowerStatus 可靠
-        int percent = WinPower.BatteryPercent();
-        bool onAc = WinPower.IsOnAc();
-        long remain = WinPower.BatteryLifeSeconds();
+        // 主路径：电池类驱动 IOCTL（对齐官方 BatteryModel/Win32.cs）。
+        // 本机 root\wmi 下 BatteryStaticData 缺失、Win32_Battery.FullChargeCapacity 为空，
+        // 只有 IOCTL 通道能拿到真实速率，从而算出剩余续航与充满剩余时间。
+        var bat = BatteryIo.TryRead();
+
+        int fallbackPercent = WinPower.BatteryPercent();
+        int percent = bat.Present ? bat.PercentOr(fallbackPercent) : fallbackPercent;
+        bool onAc = bat.Present ? bat.PowerOnline : WinPower.IsOnAc();
+        long remain = bat.Present ? bat.SecondsRemaining() : WinPower.BatteryLifeSeconds();
+        long full = bat.Present ? bat.SecondsToFull() : -1;
+
+        // 异常码：0=正常 1=系统无电池 2=电池老化（健康度<80%）3=充电异常（接着电却在放电）
+        int abnormal = 0;
+        if (!bat.Present) abnormal = 1;
+        else if (bat.HealthPercent is > 0 and < 80) abnormal = 2;
+        else if (bat.Discharging && onAc) abnormal = 3;
+
+        // 注意：UI 用 `batteryinfo["BatteryTime"] == "-1"` 判空，且随后 Convert.ToInt32 取值，
+        // 因此这两个字段必须发「秒数字符串」而不是数字，否则 -1 会被格式化成 "0"。
         var payload = new Dictionary<string, object?>
         {
             ["HealthProtectionStatus"] = _state.BatteryHealthMode,
             ["BatteryPercent"] = percent >= 0 ? percent : 100,
-            ["BatteryTime"] = remain,
-            ["BatteryFullTime"] = -1,
+            ["BatteryTime"] = remain.ToString(),
+            ["BatteryFullTime"] = full.ToString(),
             // "1" = 接通电源（充电中/已充满），"0" = 使用电池
             ["BatteryPowerStatus"] = onAc ? "1" : "0",
             ["TypeCAdaptorPrioritySupport"] = false,
             ["TypeCAdaptorPrioritySwitch"] = "0",
-            ["BatteryAbnormal"] = "0",
+            ["BatteryAbnormal"] = abnormal.ToString(),
+
+            // —— 以下字段当前 UI 未绑定，供 HomeMod / 日志 / 后续页面使用 ——
+            ["BatteryDesignedCapacity"] = bat.Present ? bat.DesignedCapacity : 0,
+            ["BatteryFullChargedCapacity"] = bat.Present ? bat.FullChargedCapacity : 0,
+            ["BatteryHealthPercent"] = bat.Present ? bat.HealthPercent : -1,
+            ["BatteryCycleCount"] = bat.Present ? bat.CycleCount : 0,
+            ["BatteryRate"] = bat.Present ? bat.Rate : 0,
+            ["BatteryVoltage"] = bat.Present ? (int)bat.Voltage : 0,
+            ["BatterySource"] = bat.Present ? "ioctl" : "kernel32",
         };
         await PublishAsync("System/BatteryProtection", payload);
     }

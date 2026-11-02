@@ -30,6 +30,9 @@ public sealed partial class ProtocolHandlers
             ["SpptRange"] = new[] { 15, 130 },
             ["CpuCores"] = CpuCoreCount(),
             ["CpuThreads"] = Environment.ProcessorCount,
+            ["CpuNominalMhz"] = WinPower.NominalMhz(),
+            ["FreqLimit"] = WinPower.GetMaxFreqMhz(),          // -1 = 不限
+            ["FreqLimitRange"] = new[] { 1200, 5200 },
 
             // GPU 卡
             ["GpuOcOn"] = _state.GpuOverClockingSwitch,
@@ -43,10 +46,8 @@ public sealed partial class ProtocolHandlers
             ["GpuLockClocks"] = _nvml?.SupportedGraphicsClocks() ?? new List<uint>(),
             ["GpuMaxClock"] = _nvml?.MaxGraphicsClock() ?? 0,
 
-            // 风扇卡：自定义转速上限（本机固件 fn20/21 与 EC 直写实测均无效，报告 §14.6，
-            // 写入为状态记忆 + acknowledge；>5800 由 UI 提示超转风险）
+            // 风扇卡：自定义转速（固定占空比模式，FanController 控制环落地）
             ["FanMaxRpm"] = _state.FanMaxRpm,
-            ["FanMaxSwitch"] = _state.FanMaxSwitch,
             ["TempWall"] = ReadCpuPowerLimit(4, _state.CpuAmdTccTarget, 95),
 
             // 各项启用开关（v9j）
@@ -58,6 +59,7 @@ public sealed partial class ProtocolHandlers
             ["GpuLockMhzEnabled"] = _state.GpuLockMhzEnabled,
             ["FanMaxRpmEnabled"] = _state.FanMaxRpmEnabled,
             ["TempWallEnabled"] = _state.TempWallEnabled,
+            ["FreqLimitEnabled"] = _state.FreqLimitEnabled,
         };
         await PublishAsync("JiaoLong/HomeStatus", payload, retain: true);
     }
@@ -195,20 +197,29 @@ public sealed partial class ProtocolHandlers
             // ---------- 风扇卡 ----------
             case "MAX_FAN":
             {
-                if (root.TryGetProperty("Switch", out var swEl))
+                int rpm = Math.Clamp(GetInt(root, "Value"), 0, 7000);
+                bool en = GetBool(root, "Enabled", _state.FanMaxRpmEnabled);
+                _state.FanMaxRpm = rpm;
+                _state.FanMaxRpmEnabled = en;
+
+                if (en && rpm > 0)
                 {
-                    bool on = GetBool(root, "Switch", false);
-                    _state.FanMaxSwitch = on;
-                    Log.Info($"home MAX_FAN switch={on}");
+                    // 实测有效路径（2026-10-18）：EC 占空比闭环，MIFS fn13 实测转速反馈，
+                    // 收敛到目标 RPM（上限=厂商规格 ~5800）。
+                    _fan.StopLoop();
+                    _fan.EnsureLoop();
+                    Log.Info($"home MAX_FAN fixed={rpm}RPM (EC closed-loop, start duty {FanController.RpmToDuty(rpm)}%)");
                 }
-                if (root.TryGetProperty("Value", out _))
+                else
                 {
-                    int rpm = Math.Clamp(GetInt(root, "Value"), 0, 7000);
-                    _state.FanMaxRpm = rpm;
-                    _state.FanMaxRpmEnabled = GetBool(root, "Enabled", _state.FanMaxRpmEnabled);
-                    // 写入通道：固件 fn20/21 与 EC 直写实测均无效（报告 §14.6），此处置为
-                    // 状态记忆 + 确认回执；>5800 由 UI 提示超转风险。
-                    Log.Info($"home MAX_FAN value={rpm} ({( _state.FanMaxRpmEnabled ? "on" : "off->auto")}){(rpm > 5800 ? " (超转风险区 >5800)" : "")}");
+                    // 关闭 = 恢复固件自动风扇
+                    try { _mifs.SetFanSpeedSwitch(false); } catch { }
+                    if (!_state.CustomLoopActive)
+                    {
+                        if (_ec.FanEcSafe) _ec.ReleaseFanManual();
+                        _fan.StopLoop();
+                    }
+                    Log.Info("home MAX_FAN off->auto");
                 }
                 _state.Save();
                 break;
@@ -222,6 +233,23 @@ public sealed partial class ProtocolHandlers
                 int applyT = en ? t : 95;
                 try { _mifs.SetCpuPower(4, (byte)applyT); } catch { }
                 Log.Info($"home TEMP_WALL = {applyT}C ({(en ? "on" : "off->default 95")})");
+                _state.Save();
+                break;
+            }
+
+            // 限制最高频率（取代原 UNDERVOLT 降压步数）：powrprof 写 FREQUENCY_MAX(MHz)
+            // + THROTTLE_MAX(%)，cap 到指定 MHz；关闭 = 取消限制（写回 0 / 100）。
+            case "FREQ_LIMIT":
+            {
+                int mhz = Math.Clamp(GetInt(root, "Mhz"), 0, 6000);
+                bool en = GetBool(root, "Enabled", _state.FreqLimitEnabled);
+                _state.FreqLimitEnabled = en;
+                _state.CpuFreqLimit = mhz;
+                int applyMhz = en && mhz > 0 ? mhz : 0;
+                bool ok = WinPower.SetMaxFreqMhz(applyMhz);
+                Log.Info($"home FREQ_LIMIT = {(applyMhz > 0 ? applyMhz + "MHz" : "不限")} " +
+                         $"({(en ? "on" : "off->unlimited")}): {(ok ? "OK" : "FAILED")} " +
+                         $"(生效值 {WinPower.GetMaxFreqMhz()}MHz)");
                 _state.Save();
                 break;
             }
@@ -290,6 +318,17 @@ public sealed partial class ProtocolHandlers
             bool t = WinPower.SetTurbo(true, 0);
             Log.Info($"home power plan switch re-apply turbo off: {t}");
         }
+        // 频率上限写在「当时的活动计划」里，切计划后必须重新下发到新计划
+        if (_state.FreqLimitEnabled && _state.CpuFreqLimit > 0)
+        {
+            bool f = WinPower.SetMaxFreqMhz(_state.CpuFreqLimit);
+            Log.Info($"home power plan switch re-apply freq limit {_state.CpuFreqLimit}MHz: {f}");
+        }
+        // 温度墙走固件通道，与电源计划无关；仅在启用时补写一次，避免无谓固件写
+        if (_state.TempWallEnabled && _state.CpuAmdTccTarget is int tcc)
+        {
+            try { _mifs.SetCpuPower(4, (byte)Math.Clamp(tcc, 40, 110)); } catch { }
+        }
         Log.Info($"home power plan high={high}: {(ok ? "OK" : "FAILED")} (当前 {WinPower.ActivePlan()})");
         _state.Save();
     }
@@ -306,6 +345,39 @@ public sealed partial class ProtocolHandlers
             }
         }
         catch (Exception ex) { Log.Error($"restore turbo failed: {ex.Message}"); }
+
+        // 频率上限：服务重启（开机）后补写一次，避免电源计划被别处切换后失效
+        try
+        {
+            if (_state.FreqLimitEnabled && _state.CpuFreqLimit > 0)
+            {
+                bool ok = WinPower.SetMaxFreqMhz(_state.CpuFreqLimit);
+                Log.Info($"restore freq limit {_state.CpuFreqLimit}MHz: {ok} (生效值 {WinPower.GetMaxFreqMhz()}MHz)");
+            }
+        }
+        catch (Exception ex) { Log.Error($"restore freq limit failed: {ex.Message}"); }
+
+        // 温度墙：固件 TCC 目标，服务重启后同样补写
+        try
+        {
+            if (_state.TempWallEnabled && _state.CpuAmdTccTarget is int tcc)
+            {
+                _mifs.SetCpuPower(4, (byte)Math.Clamp(tcc, 40, 110));
+                Log.Info($"restore temp wall {tcc}C");
+            }
+        }
+        catch (Exception ex) { Log.Error($"restore temp wall failed: {ex.Message}"); }
+
+        // 自定义风扇转速：EC 占空比闭环，服务重启（开机）后恢复控制环
+        try
+        {
+            if (_state.FanMaxRpmEnabled && _state.FanMaxRpm > 0)
+            {
+                _fan.EnsureLoop();
+                Log.Info($"restore fan fixed {_state.FanMaxRpm}RPM (EC closed-loop)");
+            }
+        }
+        catch (Exception ex) { Log.Error($"restore fan fixed failed: {ex.Message}"); }
 
         try
         {

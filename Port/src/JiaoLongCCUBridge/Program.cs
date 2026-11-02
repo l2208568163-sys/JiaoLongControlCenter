@@ -12,6 +12,13 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
+        // Win 键锁定助手：只在用户桌面会话里跑（由服务以用户令牌拉起）
+        if (args.Contains("--winkey-hook"))
+        {
+            Environment.ExitCode = WinkeyHook.Run();
+            return;
+        }
+
         if (args.Contains("--console"))
         {
             await RunCoreAsync(CancellationToken.None);
@@ -50,6 +57,94 @@ public static class Program
                 Console.WriteLine($"  page 0x{baseAddr:X4} scanned");
             }
             Console.WriteLine($"total hits: {found}");
+            return;
+        }
+
+        if (args.Contains("--battest"))
+        {
+            // 只读自检：电池类驱动 IOCTL + 当前电源计划/休眠超时（不修改任何设置）
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            var b = BatteryIo.TryRead();
+            Console.WriteLine("=== battery IOCTL ===");
+            Console.WriteLine($"Present            : {b.Present}");
+            if (b.Present)
+            {
+                Console.WriteLine($"DesignedCapacity   : {b.DesignedCapacity} mWh");
+                Console.WriteLine($"FullChargedCapacity: {b.FullChargedCapacity} mWh");
+                Console.WriteLine($"HealthPercent      : {b.HealthPercent} %");
+                Console.WriteLine($"CycleCount         : {b.CycleCount}");
+                Console.WriteLine($"Capacity           : {b.Capacity} mWh");
+                Console.WriteLine($"Voltage            : {b.Voltage} mV");
+                Console.WriteLine($"Rate               : {b.Rate} mW");
+                Console.WriteLine($"PowerOnline        : {b.PowerOnline}  Charging={b.Charging}  Discharging={b.Discharging}  Critical={b.Critical}");
+                Console.WriteLine($"Chemistry          : {b.Chemistry}");
+                Console.WriteLine($"Percent            : {b.PercentOr(-1)} %");
+                Console.WriteLine($"SecondsRemaining   : {b.SecondsRemaining()}");
+                Console.WriteLine($"SecondsToFull      : {b.SecondsToFull()}");
+            }
+            Console.WriteLine("=== power ===");
+            Console.WriteLine($"ActivePlan         : {WinPower.ActivePlan()}");
+            Console.WriteLine($"HibernateIdleSec   : {WinPower.GetHibernateIdleSeconds()}");
+            return;
+        }
+
+        if (args.Contains("--powertest"))
+        {
+            // 电源侧自检（会真实改变系统状态，仅用于验证 P0 三项，正常使用不需要）：
+            //   --powertest on           切高性能计划 + 最佳性能 overlay
+            //   --powertest off          切平衡计划 + 平衡 overlay
+            //   --powertest deep <sec>   写 HIBERNATEIDLE（0 = 从不）
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            string mode = args.Length > 1 ? args[1] : "";
+            switch (mode)
+            {
+                case "on":
+                    Console.WriteLine($"SetActivePlan(High) = {WinPower.SetActivePlan(WinPower.PlanHigh)}");
+                    Console.WriteLine($"SetOverlay(BestPerf) = {WinPower.SetOverlayBestPerformance()}");
+                    break;
+                case "off":
+                    Console.WriteLine($"SetActivePlan(Balanced) = {WinPower.SetActivePlan(WinPower.PlanBalanced)}");
+                    Console.WriteLine($"SetOverlay(Balanced) = {WinPower.SetOverlayBalanced()}");
+                    break;
+                case "deep":
+                    {
+                        int sec = args.Length > 2 ? int.Parse(args[2]) : 0;
+                        Console.WriteLine($"SetHibernateIdleSeconds({sec}) = {WinPower.SetHibernateIdleSeconds(sec)}");
+                        Console.WriteLine($"readback = {WinPower.GetHibernateIdleSeconds()}");
+                        break;
+                    }
+                default:
+                    Console.WriteLine("usage: --powertest on|off|deep <seconds>");
+                    Console.WriteLine($"ActivePlan = {WinPower.ActivePlan()}");
+                    Console.WriteLine($"HibernateIdleSec = {WinPower.GetHibernateIdleSeconds()}");
+                    break;
+            }
+            return;
+        }
+
+        if (args.Contains("--send") && args.Length >= 3)
+        {
+            // 调试：向本地 broker 发一条消息，模拟 UI 下发（验证服务端动作，无需点界面）
+            //   --send Setting/Control {"Action":"DEEPSLEEP_ON","Secs":900}
+            string topic = args[1];
+            string json = args[2];
+            var factory = new MQTTnet.MqttFactory();
+            using var client = factory.CreateMqttClient();
+            var opt = new MQTTnet.Client.MqttClientOptionsBuilder()
+                .WithTcpServer(ProtocolHandlers.BrokerHost, ProtocolHandlers.BrokerPort)
+                .WithClientId("JL-Debug-" + Guid.NewGuid().ToString("N")[..6])
+                .WithTimeout(TimeSpan.FromSeconds(5))
+                .Build();
+            await client.ConnectAsync(opt);
+            var msg = new MQTTnet.MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(json)
+                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build();
+            await client.PublishAsync(msg);
+            await Task.Delay(600);
+            await client.DisconnectAsync(new MQTTnet.Client.MqttClientDisconnectOptions());
+            Console.WriteLine($"sent -> {topic} {json}");
             return;
         }
 
@@ -108,6 +203,7 @@ public sealed class BridgeWorker : Microsoft.Extensions.Hosting.IHostedService
     private KeyboardEffects _kbdFx = null!;
     private Timer? _telemetryTimer;
     private Timer? _keyboardTimerTimer;
+    private Timer? _winkeyWatchTimer;
     private volatile bool _telemetryOn;
 
     public async Task StartAsync(CancellationToken token)
@@ -149,7 +245,9 @@ public sealed class BridgeWorker : Microsoft.Extensions.Hosting.IHostedService
             if (_state.HighPerformancePowerMode)
             {
                 bool ok = WinPower.SetActivePlan(WinPower.PlanHigh);
-                Log.Info($"restore 高性能电源模式 -> 高性能电源计划: {ok} (当前计划 {WinPower.ActivePlan()})");
+                // overlay 不随计划持久化，开机需一并恢复，否则设置页显示"平衡"
+                bool overlay = WinPower.SetOverlayBestPerformance();
+                Log.Info($"restore 高性能电源模式 -> 高性能计划={ok}, 最佳性能 overlay={overlay} (当前计划 {WinPower.ActivePlan()})");
             }
         }
         catch (Exception ex)
@@ -157,13 +255,42 @@ public sealed class BridgeWorker : Microsoft.Extensions.Hosting.IHostedService
             Log.Error($"restore power plan failed: {ex.Message}"); // 启动链路必须兜底，任何异常都不能中断服务启动
         }
 
+        // 恢复「深度睡眠」（HIBERNATEIDLE 存在电源计划里，但用户切计划后会丢，开机对齐一次）
+        try
+        {
+            if (_state.DeepSleepState == "ON" && _state.DeepSleepSeconds > 0)
+            {
+                bool ok = WinPower.SetHibernateIdleSeconds(_state.DeepSleepSeconds);
+                Log.Info($"restore 深度睡眠 -> HIBERNATEIDLE={_state.DeepSleepSeconds}s: {ok}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"restore deep sleep failed: {ex.Message}");
+        }
+
         _fan = new FanController(_mifs, _ec, _state, GpuTempProvider);
         _kbdFx = new KeyboardEffects(_mifs);
         _handlers = new ProtocolHandlers(_mifs, _state, _nvml, _fan, _ec, _kbdFx,
             () => _telemetryOn, on => _telemetryOn = on);
         _handlers.RestoreHomeSettings(); // 睿频关闭态 / GPU 锁频 开机恢复
+        _handlers.RestoreSystemSettings(); // Win 键锁 / OSD 开关 开机恢复（幂等）
         _mqtt = new MqttHost(_handlers);
         await _mqtt.StartAsync();
+
+        // Win 键钩子守护：锁定态下若钩子进程被杀（任务管理器/安全软件），30 秒内拉起
+        _winkeyWatchTimer = new Timer(_ =>
+        {
+            try
+            {
+                if (WinkeyController.IsLocked() && !WinkeyController.IsHookRunning())
+                {
+                    Log.Info("winkey hook 不在运行，尝试重启");
+                    WinkeyController.EnsureHookRunning();
+                }
+            }
+            catch (Exception ex) { Log.Error("winkey watch: " + ex.Message); }
+        }, null, 20000, 30000);
 
         // 遥测推送：UI 发 System_ON 后开启；每 3 秒一轮
         _telemetryTimer = new Timer(async _ =>
@@ -190,6 +317,7 @@ public sealed class BridgeWorker : Microsoft.Extensions.Hosting.IHostedService
     {
         _telemetryTimer?.Dispose();
         _keyboardTimerTimer?.Dispose();
+        _winkeyWatchTimer?.Dispose();
         _fan?.StopLoop();
         _kbdFx?.StopAll();
         _ec?.ReleaseFanManual(); // 交还固件风扇控制

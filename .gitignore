@@ -65,6 +65,9 @@ _work/decomp_ui/
 _work/decomp_svc/
 _work/decomp_old/
 _work/decomp_bridge/
+# 11-02/11-03 逆向取证产出的全量反编译转储（体量大且属厂商代码）
+_work/decomp_svc_full/
+_work/decomp_osdtp/
 
 # ========== 运行时/杂项 ==========
 .workbuddy/
@@ -88,5 +91,7 @@ desktop.ini
 # _work 根目录下这些 .txt 都是调试与终端回显转储，属于过程记录，不入库
 _work/*.txt
 *.jsonl
+# 风扇曲线测试数据（运行时生成的临时状态）
+_work/curve_*.json
 
 

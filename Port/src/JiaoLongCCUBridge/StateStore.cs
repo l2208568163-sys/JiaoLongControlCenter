@@ -19,6 +19,14 @@ public sealed class StateStore
     public byte KeyboardBrightness { get; set; } = 3;
     public byte KeyboardMode { get; set; } = 2;          // 0=关 1=流光 2=固定色
     public string KeyboardColorHex { get; set; } = "FF0072";
+    /// <summary>当前灯效名（Single/Breathing/Wave/Rainbow/Mix/Flash），空表示未设置。</summary>
+    public string KeyboardEffect { get; set; } = "Single";
+    /// <summary>速度档 0-4（UI SpeedSlider）。</summary>
+    public int KeyboardSpeed { get; set; } = 2;
+    /// <summary>方向：None/LeftRight/RightLeft/UpDown/DownUp。</summary>
+    public string KeyboardDirection { get; set; } = "None";
+    /// <summary>混色/多色调色板（逗号分隔的 RRGGBB，首位为主色）。</summary>
+    public string KeyboardPalette { get; set; } = "";
     public string? KeyboardTimerDeadline { get; set; }   // ISO 时间，定时关灯
 
     // —— GPU 超频（KaronOC P0 偏移）——
@@ -42,11 +50,13 @@ public sealed class StateStore
     public bool GpuLockOn { get; set; }
     public int GpuLockMhz { get; set; }
 
-    /// <summary>自定义风扇转速上限（0-7000；本机固件 fn20/21 与 EC 直写实测均无效，
-    /// 此值仅状态记忆与 UI 回显，写入通道保留待固件突破）。>5800 为超转风险区。</summary>
+    /// <summary>自定义风扇转速（RPM，0-7000）。由 FanController 固定转速模式落地：
+    /// RPM 线性折算占空比后经 EC 直写（0xC83C/0xC83D + 0xB20 手动位，强冷同款已验证通道）。
+    /// >5800 为超转风险区。</summary>
     public int FanMaxRpm { get; set; }
-    /// <summary>最大转速开关（旧程序 MAX_FAN Switch 通道，固件无效仅状态记忆）。</summary>
-    public bool FanMaxSwitch { get; set; }
+
+    /// <summary>限制最高频率（MHz，powrprof 双通道写入；0 = 不限）。取代原「降压步数」。</summary>
+    public int CpuFreqLimit { get; set; }
 
     // —— 主页可调项启用开关（v9j）：关闭 = 该项恢复默认/不下发，开启 = 下发当前值 ——
     public bool Pl1Enabled { get; set; } = true;
@@ -57,6 +67,8 @@ public sealed class StateStore
     public bool GpuLockMhzEnabled { get; set; } = true;
     public bool FanMaxRpmEnabled { get; set; } = true;
     public bool TempWallEnabled { get; set; } = true;
+    /// <summary>限制频率开关（默认关：升级后不改变原有睿频行为）。</summary>
+    public bool FreqLimitEnabled { get; set; }
 
     // —— 显示 ——
     public bool ColorCalibrationOn { get; set; }
@@ -73,6 +85,8 @@ public sealed class StateStore
     public string UsbChargerState { get; set; } = "OFF";
     public string DeepSleepState { get; set; } = "OFF";
     public int DeepSleepSeconds { get; set; }
+    /// <summary>开启「深度睡眠」前的休眠空闲秒数，关闭时原样恢复（本机出厂为 0 = 从不）。</summary>
+    public int? DeepSleepPrevHibernateIdle { get; set; }
     public string AcRecoveryState { get; set; } = "OFF";
     public string BatteryLogoState { get; set; } = "OFF";
 
@@ -100,23 +114,52 @@ public sealed class StateStore
             if (File.Exists(FilePath))
                 return JsonSerializer.Deserialize<StateStore>(File.ReadAllText(FilePath)) ?? new StateStore();
         }
-        catch
+        catch (Exception ex)
         {
-            // 损坏则用默认状态
+            // 损坏时留档再回默认值，避免"设置无故丢失却查不到原因"
+            try { File.Copy(FilePath, FilePath + ".corrupt", true); } catch { }
+            Log.Error("state.json 解析失败，已备份为 .corrupt 并使用默认值: " + ex.Message);
         }
         return new StateStore();
     }
 
+    /// <summary>
+    /// 原子保存：先写唯一临时文件再替换，避免服务被强杀时留下半截 JSON。
+    /// 必须串行化：MQTT 回调与守护定时器可能同时触发 Save，
+    /// 共用同一个 .tmp 会撞 "file is being used by another process"。
+    /// </summary>
+    private static readonly object SaveGate = new();
+
     public void Save()
     {
-        try
+        lock (SaveGate)
         {
-            Directory.CreateDirectory(Dir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
-        }
-        catch
-        {
-            // 保存失败不致命
+            try
+            {
+                Directory.CreateDirectory(Dir);
+                string tmp = FilePath + "." + Guid.NewGuid().ToString("N")[..8] + ".tmp";
+                File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+
+                if (!File.Exists(FilePath))
+                {
+                    File.Move(tmp, FilePath);
+                    return;
+                }
+                try
+                {
+                    File.Replace(tmp, FilePath, FilePath + ".bak", true);
+                }
+                catch
+                {
+                    // 某些文件系统不支持 Replace，退回覆盖写
+                    File.Copy(tmp, FilePath, true);
+                    File.Delete(tmp);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("state.json 保存失败: " + ex.Message);
+            }
         }
     }
 }

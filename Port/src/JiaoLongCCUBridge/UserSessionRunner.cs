@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -94,35 +95,14 @@ public static class UserSessionRunner
             uint sessionId = WTSGetActiveConsoleSessionId();
             Log.Info($"user session id: {sessionId}");
 
-            // 找活跃会话中任一进程的用户令牌（优先 explorer）
-            uint[] pids = new uint[4096];
-            if (!EnumProcesses(pids, (uint)(pids.Length * 4), out _)) return false;
-            foreach (uint pid in pids)
-            {
-                if (pid == 0) continue;
-                IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
-                if (h == IntPtr.Zero) continue;
-                if (ProcessIdToSessionId(pid, out uint sess) && sess == sessionId &&
-                    OpenProcessToken(h, TOKEN_DUPLICATE | TOKEN_QUERY, out IntPtr tok))
-                {
-                    if (DuplicateTokenEx(tok, MAXIMUM_ALLOWED | TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY,
-                            IntPtr.Zero, SecurityImpersonation, TokenPrimary, out dup))
-                    {
-                        CloseHandle(tok);
-                        CloseHandle(h);
-                        token = dup;
-                        break;
-                    }
-                    CloseHandle(tok);
-                }
-                CloseHandle(h);
-                if (token != IntPtr.Zero) break;
-            }
-            if (token == IntPtr.Zero)
+            dup = TryGetUserToken(sessionId);
+            if (dup == IntPtr.Zero)
             {
                 Log.Error("UserSessionRunner: 未找到活跃用户令牌");
                 return false;
             }
+            token = dup;
+            dup = IntPtr.Zero;
 
             IntPtr sa = Marshal.AllocHGlobal(Marshal.SizeOf<SECURITY_ATTRIBUTES_RAW>());
             Marshal.StructureToPtr(new SECURITY_ATTRIBUTES_RAW { nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES_RAW>(), bInheritHandle = true }, sa, false);
@@ -190,6 +170,126 @@ public static class UserSessionRunner
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetExitCodeProcess(IntPtr h, out uint code);
+
+    /// <summary>取活跃控制台会话里的用户主令牌（已 Duplicate 为 primary）。用完需 CloseHandle。</summary>
+    private static IntPtr TryGetUserToken(uint sessionId)
+    {
+        // 优先 explorer.exe：它才是真正的交互式用户进程。
+        // 直接遍历进程会先撞上 winlogon/csrss 这类 Session 1 里的 SYSTEM 进程，
+        // 用它们的令牌启动子进程会得到一个"没有用户配置环境"的 SYSTEM 进程。
+        foreach (var p in Process.GetProcessesByName("explorer"))
+        {
+            try
+            {
+                if (ProcessIdToSessionId((uint)p.Id, out uint sess) && sess == sessionId)
+                {
+                    IntPtr t = TokenFromPid((uint)p.Id);
+                    if (t != IntPtr.Zero) return t;
+                }
+            }
+            catch { }
+            finally { p.Dispose(); }
+        }
+
+        // 兜底：同会话任意可打开令牌的进程
+        uint[] pids = new uint[4096];
+        if (!EnumProcesses(pids, (uint)(pids.Length * 4), out _)) return IntPtr.Zero;
+        foreach (uint pid in pids)
+        {
+            if (pid == 0) continue;
+            if (!ProcessIdToSessionId(pid, out uint sess) || sess != sessionId) continue;
+            IntPtr t = TokenFromPid(pid);
+            if (t != IntPtr.Zero) return t;
+        }
+        return IntPtr.Zero;
+    }
+
+    private static IntPtr TokenFromPid(uint pid)
+    {
+        IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) return IntPtr.Zero;
+        try
+        {
+            if (!OpenProcessToken(h, TOKEN_DUPLICATE | TOKEN_QUERY, out IntPtr tok)) return IntPtr.Zero;
+            try
+            {
+                return DuplicateTokenEx(tok, MAXIMUM_ALLOWED | TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY,
+                    IntPtr.Zero, SecurityImpersonation, TokenPrimary, out IntPtr dup)
+                    ? dup
+                    : IntPtr.Zero;
+            }
+            finally { CloseHandle(tok); }
+        }
+        finally { CloseHandle(h); }
+    }
+
+    /// <summary>
+    /// 以当前登录用户身份启动一个**常驻**进程（不等待退出）。
+    /// 与 RunInUserSession 的区别：指定 winsta0\default 桌面、不建管道、立即返回 PID。
+    /// 用于键盘钩子这类必须活在用户桌面会话里的助手。
+    /// </summary>
+    public static bool StartInUserSession(string exe, string args, out int pid)
+    {
+        pid = 0;
+        IntPtr token = IntPtr.Zero, env = IntPtr.Zero;
+        try
+        {
+            uint sessionId = WTSGetActiveConsoleSessionId();
+            if (sessionId == 0xFFFFFFFF) { Log.Error("StartInUserSession: 无活动控制台会话"); return false; }
+
+            token = TryGetUserToken(sessionId);
+            if (token == IntPtr.Zero) { Log.Error("StartInUserSession: 未找到用户令牌"); return false; }
+
+            bool envOk = CreateEnvironmentBlock(out env, token, false);
+            Log.Info($"StartInUserSession: token=ok envBlock={envOk} envNull={env == IntPtr.Zero}");
+            // lpDesktop 必须留空：显式指定 "winsta0\default" 时，服务（Session 0 的
+            // Service-0x0-xxx$ 窗口站）到用户桌面建进程会失败/秒退；留空则由令牌的
+            // 会话决定桌面，实测与 RunInUserSession 行为一致。
+            var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
+
+            if (!CreateProcessAsUserW(token, null, $"\"{exe}\" {args}", IntPtr.Zero, IntPtr.Zero, false,
+                    CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, env, null, ref si, out PROCESS_INFORMATION pi))
+            {
+                int err = Marshal.GetLastWin32Error();
+                Log.Error($"StartInUserSession CreateProcessAsUserW failed err={err}");
+                return false;
+            }
+            pid = (int)pi.dwProcessId;
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+
+            // 诊断：子进程若在托管入口前就死掉（apphost 解压失败/被拦截），
+            // 只有退出码能说明问题，所以这里短暂回查一次。
+            Thread.Sleep(600);
+            try
+            {
+                using var child = Process.GetProcessById(pid);
+                if (child.HasExited)
+                    Log.Error($"StartInUserSession: 子进程已退出 exit=0x{child.ExitCode:X8}");
+                else
+                    Log.Info($"StartInUserSession: {Path.GetFileName(exe)} {args} -> pid={pid} 存活");
+            }
+            catch (ArgumentException)
+            {
+                Log.Error("StartInUserSession: 子进程已退出（无法读取退出码）");
+            }
+            catch (Exception ex)
+            {
+                Log.Info($"StartInUserSession: {Path.GetFileName(exe)} {args} -> pid={pid} ({ex.Message})");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("StartInUserSession: " + ex.Message);
+            return false;
+        }
+        finally
+        {
+            if (token != IntPtr.Zero) CloseHandle(token);
+            if (env != IntPtr.Zero) DestroyEnvironmentBlock(env);
+        }
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct SECURITY_ATTRIBUTES_RAW

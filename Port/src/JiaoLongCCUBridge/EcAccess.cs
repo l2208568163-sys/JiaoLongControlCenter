@@ -44,6 +44,13 @@ public sealed class EcAccess : IDisposable
     private WritePciConfigDwordDelegate? _writePci;
 
     public bool Available { get; private set; }
+
+    /// <summary>EC 风扇寄存器写是否可用。2026-10-18 晚实测：本机（chip@0x2000 读 0x12）
+    /// 的 EC 手动占空比写**有效**（duty100 → 风扇 5796 RPM 稳定保持，60°C 怠速下），
+    /// 但读数是坏的（恒 0x12，禁止读-改-写 0xB20）且 0x1060（扩展寻址开关）写入会
+    /// 卡死 EC IO —— 正常运行时一律【不碰 0x1060】，手动位 RMW 保持旧程序序列。</summary>
+    public bool FanEcSafe => Available;
+
     private readonly object _lock = new();
 
     public bool Init()
@@ -87,7 +94,7 @@ public sealed class EcAccess : IDisposable
                 }
                 else
                 {
-                    Log.Info($"ITE EC init: chip id 0x{chipId:X2} (非 ITE，跳过使能)");
+                    Log.Info($"ITE EC init: chip id 0x{chipId:X2} (非标准 ITE 签名；跳过使能，风扇占空比写直发)");
                 }
             }
             catch (Exception ex)
@@ -261,17 +268,52 @@ public sealed class EcAccess : IDisposable
         if ((v & 0x02) == 0) WriteEc(EcRegFanManual, (byte)(v | 0x02));
     }
 
-    /// <summary>退出手动风扇模式并清占空比，交还固件自动控制。</summary>
+    /// <summary>退出手动风扇模式并清占空比，交还固件自动控制。
+    /// ⚠️ 必须照抄旧程序 Fan_Clear：直接写 0，不做读-改-写 —— 本机 EC 读数是坏的
+    /// （恒返 0x11/0x12），RMW 会把垃圾位写回去导致手动模式卡死、风扇锁速。</summary>
     public void ReleaseFanManual()
     {
         try
         {
             WriteEc(EcRegFanCpu, 0);
             WriteEc(EcRegFanGpu, 0);
-            byte v = ReadEc(EcRegFanManual);
-            WriteEc(EcRegFanManual, (byte)(v & ~0x02));
+            WriteEc(EcRegFanManual, 0);
         }
         catch { }
+    }
+
+    /// <summary>恢复动作（FAN_RESET 用）：执行 Fan_Clear 清手动锁存并回读。
+    /// ⚠️ 不碰 0x1060（扩展寻址开关的写入实测会卡死 EC IO）。</summary>
+    public string ForceFanClear()
+    {
+        var sb = new System.Text.StringBuilder();
+        lock (_lock)
+        {
+            try
+            {
+                WriteEc(EcRegFanCpu, 0);
+                WriteEc(EcRegFanGpu, 0);
+                WriteEc(EcRegFanManual, 0);
+                var b20 = ReadEc(EcRegFanManual);
+                var duty = ReadEc(EcRegFanCpu);
+                sb.Append($"fan_clear ok, readback 0xB20=0x{b20:X2} 0xC83C=0x{duty:X2}");
+            }
+            catch (Exception ex) { sb.Append("clear failed: " + ex.Message); }
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>一键强冷（实测有效序列，2026-10-18 21:13 验证）：duty 100/100 + 手动位。
+    /// 风扇将保持在厂商上限 ~5800 RPM（与温度无关）。</summary>
+    public void SetBoostManual()
+    {
+        lock (_lock)
+        {
+            WriteEc(EcRegFanCpu, 100);
+            WriteEc(EcRegFanGpu, 100);
+            var b20 = ReadEc(0xB20);
+            WriteEc(0xB20, (byte)(b20 | 0x02));
+        }
     }
 
     public void SetFanDuty(byte cpuDuty, byte gpuDuty)

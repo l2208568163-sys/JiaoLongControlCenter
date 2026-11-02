@@ -33,26 +33,29 @@
 
 ## 2. `JiaoLongCCUBridge` 源文件职责
 
-共 17 个文件 / 4050 行。
+共 20 个 .cs / 6035 行。
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
-| `Bridge.cs` | 1377 | **核心**。MQTT 服务端与全部 topic 路由、请求分发、状态广播。所有硬件能力在此汇总成协议 |
-| `EcAccess.cs` | 335 | EC（嵌入式控制器）寄存器读写，经 WinRing0 走 I/O 端口 `0x60/0x64`，含互斥与超时保护 |
-| `HomeControls.cs` | 320 | 主页卡片控制项的后端：性能模式、睿频开关、强冷、温度墙、风扇自动策略 |
-| `DeviceToggles.cs` | 218 | WiFi / 蓝牙 / 摄像头真实开关（设备禁用 + 状态回读） |
+| `Bridge.cs` | 1729 | **核心**。MQTT 服务端与全部 topic 路由、请求分发、状态广播、系统选项动作分发。所有硬件能力在此汇总成协议 |
+| `HomeControls.cs` | 392 | 主页卡片控制项的后端：性能模式、睿频开关、强冷、温度墙、风扇自动策略、频率限制 |
+| `EcAccess.cs` | 377 | EC（嵌入式控制器）寄存器读写，经 WinRing0 走 I/O 端口 `0x60/0x64`，含互斥与超时保护 |
+| `BatteryIo.cs` | 347 | 电池类驱动直读：`SetupDiGetClassDevs(GUID_DEVCLASS_BATTERY)` → `CreateFile` → `IOCTL_BATTERY_QUERY_TAG/_INFORMATION/_STATUS`，拿到 WMI 拿不到的设计容量 / 循环次数 / 带符号速率 |
+| `WinkeyHook.cs` | 327 | Win 键锁定：`WH_KEYBOARD_LL` 低级键盘钩子（注册表 `NoWinKeys` 挡不住单独按 Win）。以普通用户身份跑在用户会话，经 Public 交换目录与桥接通信 |
+| `Program.cs` | 328 | 入口。命令行开关（`--console` / `--ecscan` / `--devtest` / `--battest` / `--powertest` / `--send` / `--winkey-hook`）、Windows 服务宿主、DI 装配 |
+| `WinPower.cs` | 318 | 电源相关：睿频（`powercfg` boost mode）、电源方案与 overlay（`SetActiveOverlayScheme`）、深度睡眠映射 `HIBERNATEIDLE`、电池状态 |
+| `UserSessionRunner.cs` | 301 | 在**用户会话**里执行需要交互的操作（服务在 Session 0，无法直接弹窗 / 操作显示器）。`CreateProcessAsUserW` 的 `lpDesktop` 必须留空 |
+| `KeyboardEffects.cs` | 296 | 软件灯效引擎：呼吸 / 波浪 / 彩虹 / 混色 / 闪烁 / 单色，参数对象原地更新，25–40 fps 帧动画下发 |
+| `DeviceToggles.cs` | 279 | WiFi / 蓝牙 / 摄像头真实开关（`CM_Disable_DevNode` 禁用 PnP 设备 + 状态回读，失败带 cfgMgr32 错误码） |
 | `DisplayController.cs` | 215 | 刷新率枚举与切换、显示模式切换、ICC 校色关联 |
-| `UserSessionRunner.cs` | 201 | 在**用户会话**里执行需要交互的操作（服务在 Session 0，无法直接弹窗/操作显示器） |
-| `Program.cs` | 200 | 入口。命令行开关（`--console` / `--ecscan` / `--devtest`）、Windows 服务宿主、DI 装配 |
+| `StateStore.cs` | 204 | 状态持久化（`state.json`，原子写 + 串行化，损坏时备份为 `.corrupt`），服务重启后恢复用户设置 |
 | `Nvml.cs` | 175 | NVML P/Invoke：GPU 温度/占用/频率/显存、锁频 `SetGpuLockedClocks` |
-| `Mifs.cs` | 169 | 固件 MIFS WMI 通道（`root\WMI\MICommonInterface`）：SPL/SPPT、模式、风扇锁速、Fn 键、触摸板、独显直连 |
-| `WinPower.cs` | 168 | 电源相关：睿频（`powercfg` boost mode）、电源方案、电池状态 |
-| `StateStore.cs` | 161 | 状态持久化（JSON），服务重启后恢复用户设置 |
-| `KeyboardEffects.cs` | 129 | 软件灯效引擎（固件只支持有限灯效，复杂效果在软件侧渲染后下发） |
-| `FanController.cs` | 103 | 风扇曲线计算与占空比下发，曲线环 / 固件锁速两种模式切换与交还 |
-| `RegistrySetup.cs` | 91 | 写入 `HKLM\SOFTWARE\OEM\GamingCenter2` 能力开关与品牌配置（官方 UI 读取这些键决定显示哪些页面） |
+| `Mifs.cs` | 169 | 固件 MIFS WMI 通道（`root\WMI\MICommonInterface`）：SPL/SPPT、模式、风扇锁速、Fn 键、触摸板、独显直连、键盘灯 fn16/17/18 |
+| `SettingsGuard.cs` | 157 | 机型能力位（`ItemSupport`）与 `ActionResult` 封装：服务端据此决定「接受不接受」，与 UI 的「显示与否」保持一致 |
+| `RegistrySetup.cs` | 107 | 写入 `HKLM\SOFTWARE\OEM\GamingCenter2` 能力开关与品牌配置（官方 UI 读取这些键决定显示哪些页面） |
 | `MqttHost.cs` | 77 | 内嵌 MQTT broker（`127.0.0.1:13688`），供 UI 与第三方客户端连接 |
 | `KaronOc.cs` | 67 | KaronOC 内核驱动接口：NVIDIA P0 状态核心/显存偏移 |
+| `SettingsRestore.cs` | 33 | 系统选项开机恢复（Win 键钩子、OSD 注册表值），与主页控制项恢复并列，在 MQTT 起来之前调用 |
 | `JiaoLongCCUBridge.csproj` | 44 | 工程文件。原生依赖（KaronOC / WinRing0）按「仓库内 payload → 本地 JiaoLong7.3」顺序查找 |
 
 ### 硬件通道选型原则
@@ -63,7 +66,8 @@
 | **WinRing0** | EC 独立风扇曲线直写、SMU 全核降压 | 需要内核驱动，仅这两项使用 |
 | **KaronOC** | GPU 超频（P0 偏移） | 需要内核驱动 |
 | **NVML** | GPU 监控、锁频 | 官方 SDK，只读为主 |
-| **Windows API** | 刷新率、ICC 校色、设备开关、电源方案 | 系统级，无风险 |
+| **电池类驱动 IOCTL** | 设计容量 / 循环次数 / 满充容量 / 带符号速率 | 官方电池类驱动 |
+| **Windows API** | 刷新率、ICC 校色、设备开关、电源计划、休眠超时、Win 键钩子 | 系统级，无风险 |
 
 > 服务停止或切换模式时会**自动交还固件风扇控制**，不会把风扇留在手动状态。
 
@@ -75,13 +79,18 @@
 - 客户端凭据：`UWPClient_User_5` / `UWPClient_Pwd888881772688_5`（沿用官方 UI 内置值，仅本机回环）
 - Topic 命名、请求/响应结构、字段含义见 [`Port/移植技术报告.md`](../移植技术报告.md) §3「官方 UI 协议」与 §16「主页控制项协议契约」。
 
-统一约定：
+主要 topic（以 `Bridge.HandleMessage` 的实际分支为准）：
 
-| 方向 | Topic 形态 | 说明 |
+| 方向 | Topic | 说明 |
 |---|---|---|
-| UI → 服务 | `.../cmd/...` | 请求，带 `id` 用于配对 |
-| 服务 → UI | `.../ack/...` | 单次请求应答 |
-| 服务 → 全部 | `.../status/...` | 周期遥测广播（CPU/GPU/风扇/模式） |
+| UI → 服务 | `Setting/Control` | 系统选项 / 电源 / 显示 / 键盘等设置动作，payload 形如 `{"Action":"DEEPSLEEP_ON","Secs":900}` |
+| UI → 服务 | `Keyboard/Ctrl` | 键盘灯效控制（效果、速度、亮度、方向、调色板） |
+| UI → 服务 | `BatteryProtection/Control` | 电池模式（`{"Action":"HEALTHYMODE"}` / `{"Report":"GET"}`） |
+| UI → 服务 | `Home/*` | 主页卡片控制项（性能模式、睿频、强冷、温度墙） |
+| 服务 → UI | `Setting/Status` | 设置项状态回发（带 1 秒防回声窗口，抑制 UI 状态回环） |
+| 服务 → UI | `Keyboard/Status` | 键盘状态回发 |
+| 服务 → UI | `System/BatteryProtection` | 电池模式回发（含 `HealthProtectionStatus`） |
+| 服务 → UI | `JiaoLong/HomeStatus` | 主页状态回发 |
 
 新增能力时：先在 `Bridge.cs` 注册 topic 处理，再在 `HomeControls.cs` 或对应能力类里实现后端，最后用 `TestClient` 跑一遍验证。
 
@@ -129,13 +138,23 @@ sc start JiaoLongCCUBridge
 | `--console` | 前台运行并输出日志到控制台 |
 | `--ecscan` | 扫描 EC 寄存器区间 |
 | `--devtest` | 设备控制自检 |
+| `--battest` | 只读自检：电池信息（设计容量/循环/健康）、电源计划、休眠超时 |
+| `--powertest on\|off` | 切高性能 / 平衡电源计划 + 对应 overlay（**会改系统**） |
+| `--powertest deep <秒>` | 写 `HIBERNATEIDLE`（0 = 从不，**会改系统**） |
+| `--send <topic> <json>` | 模拟 UI 下发，走完整业务路径 |
+| `--winkey-hook` | 以用户身份启动 Win 键钩子进程（服务一般会自动拉起） |
 
 日志：`C:\ProgramData\JiaoLongCCUBridge\bridge_YYYYMMDD.log`
+状态：`C:\ProgramData\JiaoLongCCUBridge\state.json`
+与用户会话进程交换目录：`C:\Users\Public\JiaoLongCCUBridge\`
 
 ### 协议自测
 
 ```bash
-dotnet run --project Port/src/TestClient -- hometest
+dotnet run --project Port/src/TestClient -- hometest       # 主页控制项
+dotnet run --project Port/src/TestClient -- batterytest    # 电池页（前半）
+dotnet run --project Port/src/TestClient -- batterytest2   # 电池页（后半：还原状态）
+dotnet run --project Port/src/TestClient -- send <topic> <json>
 ```
 
 `TestClient` 会模拟 UI 发送 MQTT 请求，并在桥接日志里核对实际硬件写入结果。
@@ -149,7 +168,7 @@ dotnet run --project Port/src/TestClient -- hometest
 | 缺失内容 | 获取方式 |
 |---|---|
 | 官方安装包 `ControlCenter_5.56.60.34_Mechrevo_GX.exe` | 厂商官网 |
-| 官方二进制反编译产物 `_work/decomp_ui`、`decomp_svc`、`decomp_bridge`、`decomp_old` | `ilspycmd -p -o <输出目录> <目标 dll/exe>` |
+| 官方二进制反编译产物 `_work/decomp_ui`、`decomp_svc`、`decomp_svc_full`、`decomp_osdtp`、`decomp_bridge`、`decomp_old` | `ilspycmd -p -o <输出目录> <目标 dll/exe>` |
 | 旧版「蛟龙游戏控制中心」安装目录 `JiaoLong7.3/` | 原厂预装 |
 
 > 注：`Port/dist/JiaoLongCCU-Port-v1.0/` 里的 `KaronOC.dll`、`WinRing0x64.dll/.sys` 已入库，

@@ -137,9 +137,15 @@ public static class DeviceToggles
     }
 
     /// <summary>枚举匹配的设备。kind: wifi | bt | cam</summary>
+    /// <remarks>
+    /// 摄像头优先只匹配物理设备：Class=Camera 的「Virtual Camera」（OBS/直播软件注册）
+    /// 会被一并禁用，导致用户开摄像头开关时误伤虚拟摄像头。仅当物理摄像头一台都找不到时，
+    /// 才回退到包含虚拟设备的集合，避免"有摄像头但开关无效"。
+    /// </remarks>
     public static List<DevInfo> Enumerate(string kind)
     {
         var result = new List<DevInfo>();
+        var virtualCam = new List<DevInfo>();
         IntPtr h = SetupDiGetClassDevsW(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES);
         if (h == IntPtr.Zero || h == new IntPtr(-1)) return result;
         try
@@ -153,6 +159,8 @@ public static class DeviceToggles
                     ?? ReadString(h, ref data, SPDRP_DEVICEDESC) ?? "";
                 if (name.Length == 0) continue;
 
+                bool isVirtual = name.Contains("virtual", StringComparison.OrdinalIgnoreCase);
+
                 // 类匹配用 ClassGuid（SPDRP_CLASS 属性对部分设备读不出，ClassGuid 枚举时自带）
                 bool match = kind switch
                 {
@@ -162,13 +170,13 @@ public static class DeviceToggles
                                name.Contains("wifi", StringComparison.OrdinalIgnoreCase) ||
                                name.Contains("wireless", StringComparison.OrdinalIgnoreCase) ||
                                name.Contains("wlan", StringComparison.OrdinalIgnoreCase)) &&
-                              !name.Contains("virtual", StringComparison.OrdinalIgnoreCase) &&
+                              !isVirtual &&
                               !name.Contains("direct", StringComparison.OrdinalIgnoreCase),
                     // 蓝牙：蓝牙类的无线电适配器（排除枚举器/协议子节点/外设）
                     "bt" => data.ClassGuid == GuidBluetooth &&
                             name.Contains("adapter", StringComparison.OrdinalIgnoreCase) &&
-                            !name.Contains("virtual", StringComparison.OrdinalIgnoreCase),
-                    // 摄像头：Camera 类全部 + Image 类的相机
+                            !isVirtual,
+                    // 摄像头：Camera 类全部 + Image 类的相机（物理优先，虚拟兜底）
                     "cam" => (data.ClassGuid == GuidCamera) ||
                              (data.ClassGuid == GuidImage && name.Contains("cam", StringComparison.OrdinalIgnoreCase)),
                     _ => false,
@@ -177,13 +185,18 @@ public static class DeviceToggles
 
                 CM_Get_DevNode_Status(out uint status, out uint problem, data.DevInst, 0);
                 bool disabled = (status & DN_HAS_PROBLEM) != 0 && problem == CM_PROB_DISABLED;
-                result.Add(new DevInfo { Name = name, Class = cls, DevInst = data.DevInst, Disabled = disabled });
+                var info = new DevInfo { Name = name, Class = cls, DevInst = data.DevInst, Disabled = disabled };
+
+                if (kind == "cam" && isVirtual) virtualCam.Add(info);
+                else result.Add(info);
             }
         }
         finally
         {
             SetupDiDestroyDeviceInfoList(h);
         }
+
+        if (kind == "cam" && result.Count == 0) return virtualCam;
         return result;
     }
 
@@ -196,23 +209,71 @@ public static class DeviceToggles
     }
 
     /// <summary>启用/禁用一类设备，返回是否成功。</summary>
-    public static bool SetEnabled(string kind, bool enable)
+    public static bool SetEnabled(string kind, bool enable) => SetEnabledEx(kind, enable).Ok;
+
+    /// <summary>设备开关的详细结果（供日志与错误主题使用）。</summary>
+    public sealed class ToggleResult
     {
-        var devs = Enumerate(kind).Where(d => enable ? d.Disabled : !d.Disabled).ToList();
-        if (devs.Count == 0) return true; // 已处于目标状态
-        bool allOk = true;
-        foreach (var dev in devs)
-        {
-            if (!SetDeviceState(dev.DevInst, enable)) allOk = false;
-        }
-        Log.Info($"device toggle {kind} -> {(enable ? "enable" : "disable")} ({devs.Count} 台): {(allOk ? "OK" : "部分失败")}");
-        return allOk;
+        public bool Ok;
+        public int Total;
+        public int Changed;
+        /// <summary>cfgMgr32 错误码（0 = 成功）。23 = CR_REMOVE_VETOED。</summary>
+        public int ErrorCode;
+        public string Detail = "";
+        public override string ToString() => $"ok={Ok} total={Total} changed={Changed} cr={ErrorCode} ({Detail})";
     }
 
-    private static bool SetDeviceState(uint devInst, bool enable)
+    /// <summary>启用/禁用一类设备，返回可诊断的结果。</summary>
+    public static ToggleResult SetEnabledEx(string kind, bool enable)
+    {
+        var r = new ToggleResult();
+        List<DevInfo> all;
+        try { all = Enumerate(kind); }
+        catch (Exception ex) { r.Detail = "枚举失败: " + ex.Message; return r; }
+
+        r.Total = all.Count;
+        if (all.Count == 0)
+        {
+            r.Detail = "未找到匹配设备";
+            Log.Error($"device toggle {kind}: 未找到匹配设备");
+            return r;
+        }
+
+        var todo = all.Where(d => enable ? d.Disabled : !d.Disabled).ToList();
+        if (todo.Count == 0)
+        {
+            r.Ok = true;
+            r.Detail = $"已处于目标状态（{all.Count} 台）";
+            return r;
+        }
+
+        if (!SystemCaps.IsElevated)
+        {
+            r.Detail = "权限不足：需要管理员/SYSTEM";
+            Log.Error($"device toggle {kind}: {r.Detail}");
+            return r;
+        }
+
+        bool allOk = true;
+        int lastCr = 0;
+        foreach (var dev in todo)
+        {
+            int cr = SetDeviceState(dev.DevInst, enable);
+            if (cr != 0) { allOk = false; lastCr = cr; }
+        }
+
+        r.Changed = todo.Count;
+        r.Ok = allOk;
+        r.ErrorCode = lastCr;
+        r.Detail = string.Join("; ", todo.Select(d => d.Name));
+        Log.Info($"device toggle {kind} -> {(enable ? "enable" : "disable")} ({todo.Count}/{all.Count} 台): {(allOk ? "OK" : $"FAILED cr={lastCr}")} [{r.Detail}]");
+        return r;
+    }
+
+    private static int SetDeviceState(uint devInst, bool enable)
     {
         int rc = enable ? CM_Enable_DevNode(devInst, 0) : CM_Disable_DevNode(devInst, 0);
         if (rc != 0) Log.Error($"CM_{(enable ? "Enable" : "Disable")}_DevNode failed cr={rc}");
-        return rc == 0; // CR_SUCCESS = 0
+        return rc;
     }
 }
