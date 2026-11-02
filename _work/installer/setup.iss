@@ -30,7 +30,7 @@
 
 
 
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.0.0"
 
 
 
@@ -378,39 +378,15 @@ Name: "{group}\卸载蛟龙电竞控制台"; Filename: "{uninstallexe}"
 
 
 
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_service.ps1"" -Root ""{app}"""; Components: bridge; Flags: runhidden; StatusMsg: "正在注册桥接服务…"
 
 
 
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_service.ps1"" -Root ""{app}"""; \
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_ui.ps1"" -Root ""{app}"""; Components: ui; Flags: runhidden; StatusMsg: "正在安装控制中心 UI（MSIX）…"
 
 
 
-  Components: bridge; Flags: runhidden; StatusMsg: "正在注册桥接服务…"
-
-
-
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
-
-
-
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_ui.ps1"" -Root ""{app}"""; \
-
-
-
-  Components: ui; Flags: runhidden; StatusMsg: "正在安装控制中心 UI（MSIX）…"
-
-
-
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
-
-
-
-  Parameters: "-NoProfile -WindowStyle Hidden -Command ""explorer.exe ('shell:AppsFolder\' + (Get-AppxPackage CCU.WinUI).PackageFamilyName + '!App')"""; \
-
-
-
-  Description: "立即启动 机械革命控制中心"; Components: ui; Flags: postinstall nowait skipifsilent runhidden
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -Command ""explorer.exe ('shell:AppsFolder\' + (Get-AppxPackage CCU.WinUI).PackageFamilyName + '!App')"""; Description: "立即启动 机械革命控制中心"; Components: ui; Flags: postinstall nowait skipifsilent runhidden
 
 
 
@@ -422,19 +398,11 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
 
 
 
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall_ui.ps1"""; Flags: runhidden
 
 
 
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall_ui.ps1"""; Flags: runhidden
-
-
-
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; \
-
-
-
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall_bridge.ps1"""; Flags: runhidden
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall_bridge.ps1"""; Flags: runhidden
 
 
 
