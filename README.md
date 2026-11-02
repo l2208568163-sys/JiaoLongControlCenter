@@ -161,6 +161,13 @@ JiaoLongControlCenter/
 │   └── 电源设置模块逆向分析与移植方案.md   电源页 8 项能力与分级移植方案
 │
 ├── _work/                              构建管线与改造工程
+│   ├── installer/                      Inno Setup 一键安装包工程
+│   │   ├── setup.iss                   主脚本（路径全部相对本目录，克隆即可编译）
+│   │   ├── install_service.ps1         注册并启动桥接服务
+│   │   ├── install_ui.ps1              安装 MSIX UI + 导入证书 + 建快捷方式
+│   │   ├── uninstall_*.ps1             卸载脚本
+│   │   ├── license.txt · 使用说明.md
+│   │   └── Languages/                  Inno Setup 官方中文语言文件
 │   ├── tools/                          重打包管线
 │   │   ├── rebuild_ui.py               解包 → 打补丁 → deps.json → makeappx → signtool
 │   │   ├── verify_msix.py              回解包逐字节哈希比对
@@ -347,6 +354,18 @@ python _work/tools/rebuild_ui.py       # 重打包官方 MSIX
 python _work/tools/verify_msix.py      # 校验
 powershell -ExecutionPolicy Bypass -File _work/tools/homemod_install.ps1   # 一键装机
 ```
+
+### 一键安装包（Inno Setup）
+
+```bash
+# 需要 Inno Setup 6（ISCC.exe 在 PATH 或用完整路径调用）
+iscc _work/installer/setup.iss
+# 产物：Port/dist/JiaoLongCCU-Setup-1.1.0.exe
+```
+
+安装包支持「完整安装 / 仅桥接服务」两种模式，安装时自动停旧服务、注册服务、导入 UI 证书、
+安装 MSIX 并创建桌面快捷方式；卸载时自动清理服务与注册表键。脚本内路径全部相对仓库目录，
+克隆到任意位置都能直接编译。
 
 ### 其他
 
