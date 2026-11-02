@@ -195,7 +195,15 @@ git clone https://github.com/l2208568163-sys/JiaoLongControlCenter.git
 cd JiaoLongControlCenter/Port/dist/JiaoLongCCU-Port-v1.0
 ```
 
-也可以从 [**Releases**](https://github.com/l2208568163-sys/JiaoLongControlCenter/releases/latest) 下载 `JiaoLongCCU-Port-v1.0.zip`（完整包）或 `JiaoLongCCUBridge-v1.0.zip`（仅桥接服务）。
+也可以从 [**Releases**](https://github.com/l2208568163-sys/JiaoLongControlCenter/releases/latest) 下载：
+
+| 资产 | 说明 |
+|---|---|
+| `JiaoLongCCU-Setup-1.1.0.exe` | ★ **推荐**：Inno Setup 一键安装包，双击即可安装（完整安装 / 仅桥接服务两种模式），中文界面 |
+| `JiaoLongCCU-Port-v1.1.zip` | 免安装绿色包：解压后右键 `1-安装移植版控制台.ps1` 运行 |
+| `JiaoLongCCUBridge-v1.1.zip` | 仅桥接服务，自备 UI 或只需要控制后端时使用 |
+
+一键安装包工程源码在 [`_work/installer`](_work/installer)，可自行重新编译。
 
 **安装步骤**
 
